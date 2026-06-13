@@ -1,0 +1,30 @@
+# Secrets / env
+be/.env
+*.env.local
+.env.local
+
+# Node / frontend
+fe/node_modules/
+fe/dist/
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Go build artifacts
+be/ace-be
+be/main
+*.test
+*.out
+
+# Claude local settings (keep shared commands tracked)
+.claude/settings.local.json
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Logs / tmp
+*.log
+/tmp/

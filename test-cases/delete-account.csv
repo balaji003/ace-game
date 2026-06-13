@@ -1,0 +1,13 @@
+TC_ID,Scenario,Precondition,Steps,Test Data,Expected Result,Actual Result,Status,Notes
+TC_D_001,Successful account deletion,User is logged in,"1. Open settings (⚙)
+2. Click 'Delete Account'
+3. Read confirmation text
+4. Click 'Delete Forever'","",Account deleted; user returned to Auth screen; JWT cleared from localStorage,,Not Tested,
+TC_D_002,Cancel deletion,User is logged in,"1. Open settings
+2. Click 'Delete Account'
+3. Click 'Cancel'","",No deletion; confirmation card dismissed; user remains in settings,,Not Tested,
+TC_D_003,Deleted user cannot log in again,Account was just deleted,"1. After deletion go to Log In tab
+2. Enter the deleted credentials
+3. Click 'Enter Table'",username=deleteduser | pin=1234,Error: 'wrong username or PIN',,Not Tested,
+TC_D_004,Deleted user's game history is removed,Account was just deleted,"1. Delete account
+2. Check DB — games and user_stats tables","",All rows for this user_id are deleted (CASCADE),,Not Tested,DB-level verification

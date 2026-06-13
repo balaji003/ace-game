@@ -1,0 +1,35 @@
+TC_ID,Scenario,Precondition,Steps,Test Data,Expected Result,Actual Result,Status,Notes
+TC_L_001,Successful login with valid credentials,User account exists,"1. Open app
+2. Enter username
+3. Enter 4-digit PIN
+4. Click 'Enter Table'",username=testuser | pin=1234,Lands on Lobby screen,,Ready to Test,handleLogin → api.login → setToken → onLogin
+TC_L_002,Login with unregistered username,No account with this username,"1. Enter a username that does not exist
+2. Enter 4-digit PIN
+3. Click 'Enter Table'",username=ghost99 | pin=1234,Error: 'wrong username or PIN',,Ready to Test,Backend returns 401; same message as wrong PIN to prevent user enumeration
+TC_L_003,Login with wrong PIN,User account exists,"1. Enter valid username
+2. Enter wrong 4-digit PIN
+3. Click 'Enter Table'",username=testuser | pin=9999,Error: 'wrong username or PIN',,Ready to Test,
+TC_L_004,Login with empty username,None,"1. Leave username blank
+2. Enter 4-digit PIN
+3. Click 'Enter Table'",username= | pin=1234,Error: 'Username must be at least 3 characters',,Ready to Test,Client-side guard: u.length < 3
+TC_L_004b,Username exceeds 16 chars — UI enforcement,None,"1. Try typing more than 16 characters in username field","",Input stops accepting characters after 16,,Ready to Test,onChange: .slice(0,16); maxLength=16
+TC_L_005,Login with empty PIN,None,"1. Enter valid username
+2. Leave PIN blank
+3. Click 'Enter Table'",username=testuser | pin=,Error: 'PIN must be exactly 4 digits',,Ready to Test,Client-side guard: pin.length !== 4; PIN input strips non-digits so empty = length 0
+TC_L_006,Login with PIN shorter than 4 digits,None,"1. Enter valid username
+2. Enter 3-digit PIN
+3. Click 'Enter Table'",username=testuser | pin=123,Error: 'PIN must be exactly 4 digits',,Ready to Test,Input capped at 4 chars via slice(0,4) and maxLength=4; guard pin.length !== 4
+TC_L_007,Login with PIN longer than 4 digits (UI enforcement),None,"1. Enter valid username
+2. Try typing more than 4 digits in PIN field","",Input field stops accepting characters after 4 digits; cannot submit with >4,,Ready to Test,onChange strips extra digits via .slice(0,4); maxLength=4 attribute
+TC_L_008,Login with special characters — UI strips them,None,"1. Try typing special chars (@ # _ !) in the username field","",Characters are silently stripped; only letters and numbers accepted,,Ready to Test,onChange: .replace(/[^a-zA-Z0-9]/g,'')
+TC_L_008b,Login with pasted username containing special chars,None,"1. Paste a username with special chars
+2. Enter 4-digit PIN
+3. Click 'Enter Table'",username=test_user | pin=1234,"Underscore stripped on paste; if bypassed: Error: 'Use only letters and numbers'",,Ready to Test,Client-side regex after lowercase: /^[a-z0-9]+$/
+TC_L_009,Session persists after page refresh,User is logged in,"1. Log in successfully
+2. Refresh the browser","",User is still logged in (JWT restored from localStorage),,Ready to Test,App.jsx useEffect calls api.getMe() on mount if token exists; clears token on 401
+TC_L_010,Logout clears session,User is logged in,"1. Log in
+2. Open settings (⚙)
+3. Click 'Log Out'","",User returned to Auth screen; JWT removed from localStorage,,Ready to Test,handleLogout calls api.logout() then clearToken() and resets all state
+TC_L_011,Button disabled while request is in-flight,None,"1. Enter valid credentials
+2. Click 'Enter Table' rapidly multiple times","",Button shows '…' and cursor changes to wait; disabled=true prevents duplicate calls,,Ready to Test,disabled={busy} on button; setBusy(true) set before api call; cleared in finally block
+TC_L_012,Forgot username link navigates to recovery flow,None,"1. On Login tab click 'Forgot username?'","",Screen changes to recovery enter-phone step,,Ready to Test,Button only renders when mode === 'login'; sets step to 'recover-phone'
