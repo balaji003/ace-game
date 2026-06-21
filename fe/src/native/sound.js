@@ -1,9 +1,21 @@
-// Lightweight sound cues synthesized with the Web Audio API — no asset files,
-// works in both a browser and the native WebView. Honors a persisted mute flag.
+// Sound cues. The card-play cue is a real mp3 (bundled by Vite, so it ships in
+// both the web and native builds); the rest are synthesized with the Web Audio
+// API (no asset files). Honors a persisted mute flag. Works in a browser and
+// the native WebView.
+
+import cardFlipUrl from '../assets/sounds/card_flip.wav';
 
 const MUTE_KEY = 'ace_muted';
 let ctx = null;
 let muted = (() => { try { return localStorage.getItem(MUTE_KEY) === '1'; } catch { return false; } })();
+
+// Preloaded 0.5s card-flip cue (light-card sample, trimmed). currentTime reset allows rapid replays.
+const cardFlip = typeof Audio !== 'undefined' ? new Audio(cardFlipUrl) : null;
+if (cardFlip) cardFlip.preload = 'auto';
+function playCardFlip() {
+  if (muted || !cardFlip) return;
+  try { cardFlip.currentTime = 0; cardFlip.play().catch(() => {}); } catch {}
+}
 
 export const isMuted = () => muted;
 export function setMuted(v) {
@@ -44,7 +56,7 @@ function play(notes) {
 
 export const sounds = {
   turn:  () => play([{ freq: 880, dur: 0.09, type: 'triangle' }]),
-  play:  () => play([{ freq: 520, dur: 0.07, type: 'square', gain: 0.12 }]),
+  play:  () => playCardFlip(),   // synthesized 0.5s card-flip WAV
   cut:   () => play([{ freq: 440, dur: 0.1, type: 'sawtooth' }, { freq: 300, dur: 0.12, type: 'sawtooth' }]),
   win:   () => play([{ freq: 523, dur: 0.12 }, { freq: 659, dur: 0.12 }, { freq: 784, dur: 0.18 }]),
   lose:  () => play([{ freq: 300, dur: 0.18, type: 'sawtooth' }, { freq: 200, dur: 0.25, type: 'sawtooth' }]),

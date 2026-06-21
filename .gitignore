@@ -19,9 +19,10 @@ be/main
 # Claude
 .claude/
 
-# Local-only docs / test data
+# Local-only docs / test data / raw sound samples
 LOCAL_TEST.*
 test-cases/
+sounds-sample/
 
 # OS / editor
 .DS_Store

@@ -10,22 +10,23 @@ import TablePreview from '../components/TablePreview';
 //   minPlayers     — smallest allowed total players (from /api/config; default 3)
 //   maxPlayers     — largest allowed total players (from /api/config; default 7)
 export default function Lobby({ username, onStart, onPlayOnline, onOpenSettings, minPlayers = 3, maxPlayers = 7 }) {
-  // Opponent counts allowed by config (total players − 1).
-  const minOpp = Math.max(1, minPlayers - 1);
-  const maxOpp = Math.max(minOpp, maxPlayers - 1);
-  const oppRange = Array.from({ length: maxOpp - minOpp + 1 }, (_, i) => minOpp + i);
+  // Player counts are TOTAL players (including the person selecting), so the
+  // smallest option is the minimum room size — never a confusing "1".
+  const lo = Math.max(2, minPlayers);
+  const hi = Math.max(lo, maxPlayers);
+  const totalRange = Array.from({ length: hi - lo + 1 }, (_, i) => lo + i);
 
-  const [opponents, setOpponents] = useState(() => Math.min(Math.max(3, minOpp), maxOpp));
+  const [players, setPlayers] = useState(() => Math.min(Math.max(4, lo), hi));   // offline total
   const [useAI, setUseAI] = useState(AI_ENABLED);
   const [showOnline, setShowOnline] = useState(false);
-  const [onlineOpps, setOnlineOpps] = useState(minOpp);
-  const total = opponents + 1;
+  const [onlinePlayers, setOnlinePlayers] = useState(lo);                        // online total
+  const total = players;
 
   // Keep selections inside the allowed range if config arrives/changes after mount.
   useEffect(() => {
-    setOpponents(o => Math.min(Math.max(o, minOpp), maxOpp));
-    setOnlineOpps(o => Math.min(Math.max(o, minOpp), maxOpp));
-  }, [minOpp, maxOpp]);
+    setPlayers(p => Math.min(Math.max(p, lo), hi));
+    setOnlinePlayers(p => Math.min(Math.max(p, lo), hi));
+  }, [lo, hi]);
 
   return (
     <div style={{
@@ -47,22 +48,25 @@ export default function Lobby({ username, onStart, onPlayOnline, onOpenSettings,
 
       <div style={{ maxWidth: 440, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 8, fontSize: 13, color: '#86efac', letterSpacing: 1 }}>NEW GAME · vs AI</div>
-        <div style={{ textAlign: 'center', fontSize: 26, fontWeight: 700, color: '#f0fdf4', marginBottom: 24 }}>
-          How many opponents?
+        <div style={{ textAlign: 'center', fontSize: 26, fontWeight: 700, color: '#f0fdf4', marginBottom: 6 }}>
+          How many players?
+        </div>
+        <div style={{ textAlign: 'center', fontSize: 12, color: '#86efac99', marginBottom: 20 }}>
+          including you (you + {players - 1} {players - 1 === 1 ? 'opponent' : 'opponents'})
         </div>
 
-        {/* Opponent count grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(oppRange.length, 6)},1fr)`, gap: 8, marginBottom: 24 }}>
-          {oppRange.map(n => (
-            <button key={n} onClick={() => setOpponents(n)} style={{
+        {/* Total player count grid (includes you) */}
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(totalRange.length, 6)},1fr)`, gap: 8, marginBottom: 24 }}>
+          {totalRange.map(n => (
+            <button key={n} onClick={() => setPlayers(n)} style={{
               aspectRatio: '1', borderRadius: 12, cursor: 'pointer',
-              border: opponents === n ? '2.5px solid #fbbf24' : '1.5px solid #16653488',
-              background: opponents === n ? 'linear-gradient(160deg,#16a34a,#15803d)' : '#0f3d28',
-              color: opponents === n ? '#fff' : '#86efac',
+              border: players === n ? '2.5px solid #fbbf24' : '1.5px solid #16653488',
+              background: players === n ? 'linear-gradient(160deg,#16a34a,#15803d)' : '#0f3d28',
+              color: players === n ? '#fff' : '#86efac',
               fontSize: 24, fontWeight: 700, fontFamily: 'Georgia,serif',
-              boxShadow: opponents === n ? '0 6px 18px #16a34a55' : 'none',
+              boxShadow: players === n ? '0 6px 18px #16a34a55' : 'none',
               transition: 'all 0.15s',
-              transform: opponents === n ? 'scale(1.05)' : 'scale(1)',
+              transform: players === n ? 'scale(1.05)' : 'scale(1)',
             }}>{n}</button>
           ))}
         </div>
@@ -108,7 +112,7 @@ export default function Lobby({ username, onStart, onPlayOnline, onOpenSettings,
           🌐 Play Online
         </button>
 
-        <button onClick={() => onStart(opponents, AI_ENABLED && useAI)} style={{
+        <button onClick={() => onStart(players - 1, AI_ENABLED && useAI)} style={{
           width: '100%', padding: 15, borderRadius: 12, border: 'none',
           background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff',
           fontSize: 17, fontWeight: 700, fontFamily: 'Georgia,serif', letterSpacing: 1,
@@ -131,14 +135,14 @@ export default function Lobby({ username, onStart, onPlayOnline, onOpenSettings,
             <div style={{ fontSize: 34, marginBottom: 6 }}>🌐</div>
             <div style={{ fontSize: 20, fontWeight: 700, color: '#e0f2fe', marginBottom: 4 }}>Play Online</div>
             <div style={{ fontSize: 12.5, color: '#7dd3fc', marginBottom: 20 }}>
-              Match with real players. How many opponents?
+              Match with real players. How many players? (including you)
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(oppRange.length, 6)},1fr)`, gap: 8, marginBottom: 20 }}>
-              {oppRange.map(n => {
-                const selected = onlineOpps === n;
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(totalRange.length, 6)},1fr)`, gap: 8, marginBottom: 20 }}>
+              {totalRange.map(n => {
+                const selected = onlinePlayers === n;
                 return (
-                  <button key={n} onClick={() => setOnlineOpps(n)} style={{
+                  <button key={n} onClick={() => setOnlinePlayers(n)} style={{
                     aspectRatio: '1', borderRadius: 12, cursor: 'pointer',
                     border: selected ? '2.5px solid #fbbf24' : '1.5px solid #1e6a8e',
                     background: selected ? 'linear-gradient(160deg,#0ea5e9,#0369a1)' : '#0a2233',
@@ -148,8 +152,11 @@ export default function Lobby({ username, onStart, onPlayOnline, onOpenSettings,
                 );
               })}
             </div>
+            <div style={{ fontSize: 11.5, color: '#7dd3fc', marginBottom: 4 }}>
+              <strong>{onlinePlayers} players</strong> — you + {onlinePlayers - 1} {onlinePlayers - 1 === 1 ? 'other' : 'others'}
+            </div>
             <div style={{ fontSize: 11, color: '#7dd3fc99', marginBottom: 20 }}>
-              {onlineOpps + 1} players · everyone must pick the same size to match
+              everyone must pick the same size to match
             </div>
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
@@ -157,7 +164,7 @@ export default function Lobby({ username, onStart, onPlayOnline, onOpenSettings,
                 background: 'transparent', border: '1.5px solid #38bdf866', color: '#7dd3fc',
                 borderRadius: 8, padding: '10px 22px', cursor: 'pointer', fontSize: 14, fontFamily: 'Georgia,serif',
               }}>Cancel</button>
-              <button onClick={() => { setShowOnline(false); onPlayOnline?.(onlineOpps); }} style={{
+              <button onClick={() => { setShowOnline(false); onPlayOnline?.(onlinePlayers - 1); }} style={{
                 background: 'linear-gradient(135deg,#0ea5e9,#0369a1)', border: 'none', color: '#fff',
                 borderRadius: 8, padding: '10px 26px', cursor: 'pointer', fontSize: 14, fontFamily: 'Georgia,serif', fontWeight: 700,
               }}>Find Match →</button>
