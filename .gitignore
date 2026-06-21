@@ -16,8 +16,12 @@ be/main
 *.test
 *.out
 
-# Claude local settings (keep shared commands tracked)
-.claude/settings.local.json
+# Claude
+.claude/
+
+# Local-only docs / test data
+LOCAL_TEST.md
+test-cases/
 
 # OS / editor
 .DS_Store
