@@ -20,7 +20,7 @@ be/main
 .claude/
 
 # Local-only docs / test data
-LOCAL_TEST.md
+LOCAL_TEST.*
 test-cases/
 
 # OS / editor
