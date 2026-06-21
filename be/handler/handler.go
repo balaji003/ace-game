@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"example.com/config"
+	"example.com/realtime"
 	"example.com/service"
 )
 
@@ -23,10 +24,18 @@ type Server struct {
 	auth *service.AuthService
 	game *service.GameService
 	ai   *service.AIService
+	hub  *realtime.Hub
 }
 
 func New(cfg *config.Config, auth *service.AuthService, game *service.GameService, ai *service.AIService) *Server {
-	return &Server{cfg: cfg, auth: auth, game: game, ai: ai}
+	hub := realtime.NewHub(realtime.HubConfig{
+		WarnSecs:   cfg.AFKWarnSecs,
+		GraceSecs:  cfg.AFKGraceSecs,
+		MaxRetries: cfg.MaxTurnRetries,
+		MinPlayers: cfg.MinPlayers,
+		MaxPlayers: cfg.MaxPlayers,
+	}, game)
+	return &Server{cfg: cfg, auth: auth, game: game, ai: ai, hub: hub}
 }
 
 func (s *Server) RegisterRoutes(mux *http.ServeMux) {
@@ -39,9 +48,15 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 			"watch_countdown_secs": s.cfg.WatchCountdownSecs,
 			"afk_warn_secs":        s.cfg.AFKWarnSecs,
 			"afk_grace_secs":       s.cfg.AFKGraceSecs,
+			"max_turn_retries":     s.cfg.MaxTurnRetries,
+			"min_players":          s.cfg.MinPlayers,
+			"max_players":          s.cfg.MaxPlayers,
 			"recent_games_limit":   s.cfg.RecentGamesLimit,
 		})
 	})
+
+	// WebSocket endpoint for online multiplayer (auth via ?token=).
+	mux.HandleFunc("GET /ws", s.handleWS)
 
 	mux.HandleFunc("GET /api/auth/check-username", s.handleCheckUsername)
 	mux.HandleFunc("POST /api/auth/send-otp", s.handleSendOTP)
@@ -65,9 +80,19 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/games", s.authMW(s.handleHistory))
 }
 
-func CORS(allowOrigin string, next http.Handler) http.Handler {
+// CORS echoes back the request's Origin when it's in the configured allow-list
+// (a single header can't carry a list), so the web domain and the native
+// WebView origin (capacitor://localhost) can both be permitted.
+func CORS(cfg *config.Config, next http.Handler) http.Handler {
+	wildcard := cfg.OriginAllowed("*")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", allowOrigin)
+		origin := r.Header.Get("Origin")
+		if wildcard {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		} else if origin != "" && cfg.OriginAllowed(origin) {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Vary", "Origin")
+		}
 		w.Header().Set("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Authorization,Content-Type")
 		if r.Method == http.MethodOptions {

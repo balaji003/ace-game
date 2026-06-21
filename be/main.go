@@ -42,7 +42,7 @@ func main() {
 	srv.RegisterRoutes(mux)
 
 	log.Printf("ACE backend listening on :%s", cfg.Port)
-	if err := http.ListenAndServe(":"+cfg.Port, handler.CORS(cfg.AllowOrigin, mux)); err != nil {
+	if err := http.ListenAndServe(":"+cfg.Port, handler.CORS(cfg, mux)); err != nil {
 		log.Fatalf("server: %v", err)
 	}
 }

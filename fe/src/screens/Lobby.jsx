@@ -1,15 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AI_ENABLED } from '../config';
 import TablePreview from '../components/TablePreview';
 
 // Props:
 //   username       — logged-in username
 //   onStart        — called with (numOpponents, useAI)
+//   onPlayOnline   — called with (numOpponents) to enter online matchmaking
 //   onOpenSettings — opens the settings panel
-export default function Lobby({ username, onStart, onOpenSettings }) {
-  const [opponents, setOpponents] = useState(3);
+//   minPlayers     — smallest allowed total players (from /api/config; default 3)
+//   maxPlayers     — largest allowed total players (from /api/config; default 7)
+export default function Lobby({ username, onStart, onPlayOnline, onOpenSettings, minPlayers = 3, maxPlayers = 7 }) {
+  // Opponent counts allowed by config (total players − 1).
+  const minOpp = Math.max(1, minPlayers - 1);
+  const maxOpp = Math.max(minOpp, maxPlayers - 1);
+  const oppRange = Array.from({ length: maxOpp - minOpp + 1 }, (_, i) => minOpp + i);
+
+  const [opponents, setOpponents] = useState(() => Math.min(Math.max(3, minOpp), maxOpp));
   const [useAI, setUseAI] = useState(AI_ENABLED);
+  const [showOnline, setShowOnline] = useState(false);
+  const [onlineOpps, setOnlineOpps] = useState(minOpp);
   const total = opponents + 1;
+
+  // Keep selections inside the allowed range if config arrives/changes after mount.
+  useEffect(() => {
+    setOpponents(o => Math.min(Math.max(o, minOpp), maxOpp));
+    setOnlineOpps(o => Math.min(Math.max(o, minOpp), maxOpp));
+  }, [minOpp, maxOpp]);
 
   return (
     <div style={{
@@ -36,8 +52,8 @@ export default function Lobby({ username, onStart, onOpenSettings }) {
         </div>
 
         {/* Opponent count grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 8, marginBottom: 24 }}>
-          {[3, 4, 5, 6, 7].map(n => (
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(oppRange.length, 6)},1fr)`, gap: 8, marginBottom: 24 }}>
+          {oppRange.map(n => (
             <button key={n} onClick={() => setOpponents(n)} style={{
               aspectRatio: '1', borderRadius: 12, cursor: 'pointer',
               border: opponents === n ? '2.5px solid #fbbf24' : '1.5px solid #16653488',
@@ -81,6 +97,17 @@ export default function Lobby({ username, onStart, onOpenSettings }) {
           </>
         )}
 
+        {/* Online multiplayer CTA — between bot options and Deal & Start */}
+        <button onClick={() => setShowOnline(true)} style={{
+          width: '100%', padding: 13, borderRadius: 12, marginBottom: 12,
+          border: '1.5px solid #38bdf8', background: 'linear-gradient(135deg,#0ea5e9,#0369a1)',
+          color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: 'Georgia,serif', letterSpacing: 1,
+          cursor: 'pointer', boxShadow: '0 5px 16px #0ea5e944',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        }}>
+          🌐 Play Online
+        </button>
+
         <button onClick={() => onStart(opponents, AI_ENABLED && useAI)} style={{
           width: '100%', padding: 15, borderRadius: 12, border: 'none',
           background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff',
@@ -90,6 +117,54 @@ export default function Lobby({ username, onStart, onOpenSettings }) {
           Deal & Start ♠
         </button>
       </div>
+
+      {/* Online opponent picker overlay */}
+      {showOnline && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 50, background: '#000000aa',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+        }}>
+          <div style={{
+            background: '#0c2d44', border: '1.5px solid #38bdf8', borderRadius: 16,
+            padding: '26px 26px', maxWidth: 360, width: '100%', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 34, marginBottom: 6 }}>🌐</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: '#e0f2fe', marginBottom: 4 }}>Play Online</div>
+            <div style={{ fontSize: 12.5, color: '#7dd3fc', marginBottom: 20 }}>
+              Match with real players. How many opponents?
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(oppRange.length, 6)},1fr)`, gap: 8, marginBottom: 20 }}>
+              {oppRange.map(n => {
+                const selected = onlineOpps === n;
+                return (
+                  <button key={n} onClick={() => setOnlineOpps(n)} style={{
+                    aspectRatio: '1', borderRadius: 12, cursor: 'pointer',
+                    border: selected ? '2.5px solid #fbbf24' : '1.5px solid #1e6a8e',
+                    background: selected ? 'linear-gradient(160deg,#0ea5e9,#0369a1)' : '#0a2233',
+                    color: '#e0f2fe',
+                    fontSize: 22, fontWeight: 700, fontFamily: 'Georgia,serif',
+                  }}>{n}</button>
+                );
+              })}
+            </div>
+            <div style={{ fontSize: 11, color: '#7dd3fc99', marginBottom: 20 }}>
+              {onlineOpps + 1} players · everyone must pick the same size to match
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button onClick={() => setShowOnline(false)} style={{
+                background: 'transparent', border: '1.5px solid #38bdf866', color: '#7dd3fc',
+                borderRadius: 8, padding: '10px 22px', cursor: 'pointer', fontSize: 14, fontFamily: 'Georgia,serif',
+              }}>Cancel</button>
+              <button onClick={() => { setShowOnline(false); onPlayOnline?.(onlineOpps); }} style={{
+                background: 'linear-gradient(135deg,#0ea5e9,#0369a1)', border: 'none', color: '#fff',
+                borderRadius: 8, padding: '10px 26px', cursor: 'pointer', fontSize: 14, fontFamily: 'Georgia,serif', fontWeight: 700,
+              }}>Find Match →</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

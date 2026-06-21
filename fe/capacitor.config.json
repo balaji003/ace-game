@@ -1,0 +1,13 @@
+{
+  "appId": "com.acegame.app",
+  "appName": "ACE",
+  "webDir": "dist",
+  "backgroundColor": "#0a2e1c",
+  "plugins": {
+    "SplashScreen": {
+      "backgroundColor": "#0a2e1c",
+      "showSpinner": false,
+      "launchAutoHide": false
+    }
+  }
+}

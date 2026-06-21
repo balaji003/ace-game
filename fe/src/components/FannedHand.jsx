@@ -1,21 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
 import { IS_RED } from '../constants';
 
+const SIDE_PAD = 12;
+const MAX_PER_ROW = 11; // wrap sooner so wide rows aren't squeezed
+
 // Props:
 //   cards     — array of { suit, rank }
 //   validSet  — Set of "suit+rank" strings the player may play this turn
 //   isMyTurn  — whether the human player can act now
 //   onPlay    — called with the card object when the player clicks a valid card
+//
+// Fully responsive hand: card size scales to the viewport, cards overlap, and
+// the hand wraps onto as many rows as needed — so it fits any screen width and
+// any card count (1 up to a full 52-card hand) without ever overflowing.
 export default function FannedHand({ cards, validSet, isMyTurn, onPlay }) {
   const [hovered, setHovered] = useState(null);
   const wrapRef = useRef(null);
-  const [wrapW, setWrapW] = useState(500);
+  const [wrapW, setWrapW] = useState(360);
 
-  // Re-measure on resize so the fan always fits without horizontal scroll
   useEffect(() => {
-    const measure = () => {
-      if (wrapRef.current) setWrapW(wrapRef.current.offsetWidth);
-    };
+    const measure = () => { if (wrapRef.current) setWrapW(wrapRef.current.offsetWidth); };
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
@@ -23,40 +27,87 @@ export default function FannedHand({ cards, validSet, isMyTurn, onPlay }) {
 
   if (cards.length === 0) {
     return (
-      <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4ade8055', fontSize: 13 }}>
+      <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4ade8055', fontSize: 13 }}>
         No cards — waiting…
       </div>
     );
   }
 
-  const n = cards.length;
-  const W = 56, H = 80;
-  const containerH = 150;
-  const pivotY = containerH + 220;   // arc pivot far below = gentle curve
-  const sidePad = 14;
-  const avail = Math.max(wrapW - sidePad * 2, W);
+  const avail = Math.max(wrapW - SIDE_PAD * 2, 140);
 
-  const maxStep = W - 14;
-  const step = n > 1 ? Math.min(maxStep, (avail - W) / (n - 1)) : 0;
-  const usedWidth = W + step * (n - 1);
+  // Responsive card size: shrink on narrow screens, cap on wide ones.
+  const W = Math.round(Math.min(56, Math.max(40, avail / 9)));
+  const H = Math.round(W * 1.4);
 
-  const maxAngle = Math.min(2.2 * n, 46);
-  const angleStep = n > 1 ? maxAngle / (n - 1) : 0;
-  const startAngle = -maxAngle / 2;
-  const tight = n > 1 && step < 22;
+  // Minimum horizontal step keeps each card's top-left rank/suit readable.
+  const minStep = Math.max(16, W * 0.42);
+  const perRow = Math.min(MAX_PER_ROW, Math.max(1, Math.floor((avail - W) / minStep) + 1));
+  const rowCount = Math.ceil(cards.length / perRow);
+
+  // Split as evenly as possible across rows.
+  const rows = [];
+  let idx = 0;
+  for (let r = 0; r < rowCount; r++) {
+    const count = Math.floor(cards.length / rowCount) + (r < cards.length % rowCount ? 1 : 0);
+    rows.push(cards.slice(idx, idx + count));
+    idx += count;
+  }
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative', width: '100%', height: containerH, userSelect: 'none' }}>
-      <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', width: usedWidth, height: containerH }}>
-        {cards.map((card, i) => {
+    <div ref={wrapRef} style={{ position: 'relative', width: '100%', userSelect: 'none' }}>
+      {rows.map((rowCards, r) => (
+        <FanRow
+          key={r}
+          rowCards={rowCards}
+          avail={avail}
+          W={W}
+          H={H}
+          validSet={validSet}
+          isMyTurn={isMyTurn}
+          onPlay={onPlay}
+          hovered={hovered}
+          setHovered={setHovered}
+        />
+      ))}
+    </div>
+  );
+}
+
+// FanRow lays one row of overlapping cards with a gentle vertical arc (middle
+// cards lifted) and a slight rotation around each card's base — no far pivot,
+// so the row's footprint stays within `avail` and never clips at the edges.
+function FanRow({ rowCards, avail, W, H, validSet, isMyTurn, onPlay, hovered, setHovered }) {
+  const n = rowCards.length;
+  const topPad = 22;                 // headroom so a hovered/raised card isn't clipped
+  const rowH = topPad + H + 8;
+
+  // Reserve a little width for the slight rotation splay so nothing overflows.
+  const usable = Math.max(W, avail - 16);
+  const maxStep = W * 0.82;          // cap overlap so a few cards don't span edge-to-edge
+  const step = n > 1 ? Math.min(maxStep, (usable - W) / (n - 1)) : 0;
+  const usedWidth = W + step * (n - 1);
+
+  const tight = step < W * 0.4;      // hide the big centre pip when very overlapped
+  const arcAmp = Math.min(12, n * 1.1);
+  const maxTilt = Math.min(6, n * 0.8); // degrees at the ends
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: rowH }}>
+      <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', width: usedWidth, height: rowH }}>
+        {rowCards.map((card, i) => {
           const key = card.suit + card.rank;
           const valid = validSet.has(key);
           const isHov = hovered === key;
-          const angle = startAngle + i * angleStep;
-          const cx = i * step + W / 2;
-          const cy = H / 2 + 28;
-          const liftY = isHov ? -26 : (valid && isMyTurn) ? -11 : 0;
           const red = IS_RED(card.suit);
+
+          // -1 (left) … 0 (centre) … 1 (right)
+          const t = n > 1 ? (i - (n - 1) / 2) / ((n - 1) / 2) : 0;
+          const arc = -arcAmp * (1 - t * t);          // raise the middle
+          const tilt = t * maxTilt;                   // subtle fan tilt
+          const lift = isHov ? -20 : (valid && isMyTurn) ? -8 : 0;
+          const cardTop = topPad + arc + lift;
+          const fontMain = Math.round(W * 0.38);
+          const fontPip = Math.round(W * 0.2);
 
           return (
             <div
@@ -66,12 +117,12 @@ export default function FannedHand({ cards, validSet, isMyTurn, onPlay }) {
               onClick={() => valid && isMyTurn && onPlay(card)}
               style={{
                 position: 'absolute',
-                left: cx - W / 2,
-                top: cy - H / 2,
+                left: i * step,
+                top: cardTop,
                 width: W, height: H,
-                transform: `rotate(${angle}deg) translateY(${liftY}px)`,
-                transformOrigin: `${W / 2}px ${pivotY}px`,
-                transition: 'transform 0.18s ease, box-shadow 0.15s',
+                transform: `rotate(${tilt}deg)`,
+                transformOrigin: `${W / 2}px ${H}px`,
+                transition: 'top 0.15s ease, box-shadow 0.15s',
                 cursor: (valid && isMyTurn) ? 'pointer' : 'default',
                 zIndex: isHov ? 1000 : i,
                 borderRadius: 7,
@@ -88,25 +139,17 @@ export default function FannedHand({ cards, validSet, isMyTurn, onPlay }) {
                 overflow: 'hidden',
               }}
             >
-              <div style={{ position: 'absolute', top: 3, left: 4, fontSize: 11, fontWeight: 700, lineHeight: 1.15, color: red ? '#dc2626' : '#111', fontFamily: 'Georgia,serif' }}>
+              <div style={{ position: 'absolute', top: 2, left: 4, fontSize: fontPip, fontWeight: 700, lineHeight: 1.1, color: red ? '#dc2626' : '#111', fontFamily: 'Georgia,serif' }}>
                 {card.rank}<br />{card.suit}
               </div>
               {!tight && (
-                <>
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 21, color: red ? '#dc2626' : '#111', fontFamily: 'Georgia,serif' }}>
-                    {card.suit}
-                  </div>
-                  <div style={{ position: 'absolute', bottom: 3, right: 4, fontSize: 11, fontWeight: 700, lineHeight: 1.15, color: red ? '#dc2626' : '#111', transform: 'rotate(180deg)', fontFamily: 'Georgia,serif' }}>
-                    {card.rank}<br />{card.suit}
-                  </div>
-                </>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: fontMain, color: red ? '#dc2626' : '#111', fontFamily: 'Georgia,serif' }}>
+                  {card.suit}
+                </div>
               )}
             </div>
           );
         })}
-      </div>
-      <div style={{ position: 'absolute', bottom: 2, right: 6, fontSize: 10, color: '#86efac99' }}>
-        {n} cards
       </div>
     </div>
   );

@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { NAMES, SUITS, RANK_VAL } from '../constants';
 import { initGame, resolveRound, applyPlay, legalMoves } from '../game/engine';
-import { askAI, smartFallback, isAINotified, markAINotified } from '../game/ai';
+import { askAI, smartFallback, isAINotified, markAINotified, resetAI } from '../game/ai';
+import * as haptics from '../native/haptics';
+import { sounds } from '../native/sound';
 import { highestOf } from '../utils/deck';
 import Arena from '../components/Arena';
 import FannedHand from '../components/FannedHand';
@@ -13,7 +15,7 @@ import FannedHand from '../components/FannedHand';
 //   onExit         — go back to Lobby
 //   onOpenSettings — opens the settings panel
 //   onGameEnd      — called with { won, placement, opponents } when game finishes
-export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSettings, onGameEnd, watchCountdownSecs = 10, afkWarnSecs = 20, afkGraceSecs = 10 }) {
+export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSettings, onGameEnd, watchCountdownSecs = 10, afkWarnSecs = 20, afkGraceSecs = 10, maxRetries = 3 }) {
   const [game, setGame] = useState(() => initGame(nPlayers));
   const [aiStatus, setAiStatus] = useState('');
   const [aiNotice, setAiNotice] = useState('');
@@ -24,6 +26,7 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
   const [watchCountdown, setWatchCountdown] = useState(0);
   const [afkPhase, setAfkPhase] = useState(null); // null | 'board' | 'popup'
   const [afkCountdown, setAfkCountdown] = useState(0);
+  const [afkRetries, setAfkRetries] = useState(0); // "I'm Here" clicks used
   const watchShownRef = useRef(false);
   const afkTimerRef  = useRef(null);
 
@@ -32,7 +35,7 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
   const reportedRef = useRef(false);
 
   const clearAfkTimer = () => clearTimeout(afkTimerRef.current);
-  const resetAfk = () => { clearAfkTimer(); setAfkPhase(null); setAfkCountdown(0); };
+  const resetAfk = () => { clearAfkTimer(); setAfkPhase(null); setAfkCountdown(0); setAfkRetries(0); };
   const armAfk = () => {
     clearAfkTimer();
     setAfkPhase(null);
@@ -43,7 +46,39 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
     }, afkWarnSecs * 1000);
   };
 
+  // "I'm Here": consume a retry; past the cap → burn out to the lobby.
+  const handleImHere = () => {
+    if (afkRetries + 1 > maxRetries) { onExit(); return; }
+    setAfkRetries(r => r + 1);
+    armAfk();
+  };
+  const afkTriesLeft = maxRetries - afkRetries;
+
   // Report result exactly once when the game ends
+  // Each fresh game retries the backend AI once (resets the per-game disable flag)
+  useEffect(() => { resetAI(); }, []);
+
+  // Haptic + sound cues on key transitions.
+  const myTurnNow = game.phase === 'playing' && game.roundOrder[game.turnIdx] === 0;
+  const prevTurn = useRef(false), prevPhase = useRef(''), overFired = useRef(false);
+  useEffect(() => {
+    if (myTurnNow && !prevTurn.current) { haptics.tap(); sounds.turn(); }
+    prevTurn.current = myTurnNow;
+  }, [myTurnNow]);
+  useEffect(() => {
+    if (game.phase === 'result' && prevPhase.current !== 'result' && game.resultType === 'cut') { haptics.impact(); sounds.cut(); }
+    prevPhase.current = game.phase;
+  }, [game.phase, game.resultType]);
+  useEffect(() => {
+    if (game.phase === 'gameOver' && !overFired.current) {
+      overFired.current = true;
+      const lost = game.loser === 0;
+      haptics.notify(!lost); (lost ? sounds.lose : sounds.win)();
+    }
+    if (game.phase !== 'gameOver') overFired.current = false;
+  }, [game.phase, game.loser]);
+  useEffect(() => { if (afkPhase === 'popup') haptics.notify(false); }, [afkPhase]);
+
   useEffect(() => {
     if (game.phase === 'gameOver' && !reportedRef.current) {
       reportedRef.current = true;
@@ -221,6 +256,7 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
     setWatching(false);
     setWatchCountdown(0);
     resetAfk();
+    resetAI();   // retry the backend AI once in the new game
     setGame(initGame(nPlayers));
   };
 
@@ -245,6 +281,7 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
       minHeight: '100vh',
       background: 'radial-gradient(ellipse at 50% 40%,#166534,#0d3d22)',
       fontFamily: 'Georgia,serif', color: '#fff', padding: 10,
+      display: 'flex', flexDirection: 'column',
     }}>
       {/* Watch game prompt — shown when human wins */}
       {watchPrompt && (
@@ -278,7 +315,7 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
               <button
                 onClick={onExit}
                 style={{
-                  background: 'transparent', border: '1.5px solid #4ade8066', color: '#4ade80',
+                  background: '#334155', border: 'none', color: '#fff', fontWeight: 700,
                   borderRadius: 8, padding: '10px 22px', cursor: 'pointer', fontSize: 14, fontFamily: 'Georgia,serif',
                 }}
               >Lobby</button>
@@ -307,7 +344,7 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
               <button
                 onClick={() => setConfirmRedeal(false)}
                 style={{
-                  background: 'transparent', border: '1.5px solid #4ade8066', color: '#4ade80',
+                  background: '#334155', border: 'none', color: '#fff', fontWeight: 700,
                   borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 13, fontFamily: 'Georgia,serif',
                 }}
               >Keep playing</button>
@@ -343,7 +380,7 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
               <button
                 onClick={() => setConfirmLeave(false)}
                 style={{
-                  background: 'transparent', border: '1.5px solid #4ade8066', color: '#4ade80',
+                  background: '#334155', border: 'none', color: '#fff', fontWeight: 700,
                   borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 13, fontFamily: 'Georgia,serif',
                 }}
               >Keep playing</button>
@@ -367,22 +404,24 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <div style={{
-            background: '#1c1917', border: '1.5px solid #ef4444', borderRadius: 14,
+            background: '#1c1917', border: `1.5px solid ${afkTriesLeft <= 1 ? '#ef4444' : '#f59e0b'}`, borderRadius: 14,
             padding: '28px 32px', textAlign: 'center', maxWidth: 320,
           }}>
             <div style={{ fontSize: 40, marginBottom: 10 }}>⏰</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#fca5a5', marginBottom: 6 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: afkTriesLeft <= 1 ? '#fca5a5' : '#fcd34d', marginBottom: 6 }}>
               Are you still there?
             </div>
             <div style={{ fontSize: 13, color: '#a8a29e', marginBottom: 6 }}>
-              You've been idle too long.
+              {afkTriesLeft <= 1
+                ? '⚠ Last attempt — act now or you’re out.'
+                : `You've been idle too long. ${afkTriesLeft} tries left.`}
             </div>
             <div style={{ fontSize: 12, color: '#86efac66', marginBottom: 20 }}>
               Cards burning in <strong style={{ color: '#ef4444' }}>{afkCountdown}s</strong>…
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button
-                onClick={() => armAfk()}
+                onClick={handleImHere}
                 style={{
                   background: '#16a34a', border: 'none', color: '#fff',
                   borderRadius: 8, padding: '10px 22px', cursor: 'pointer',
@@ -392,9 +431,9 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
               <button
                 onClick={onExit}
                 style={{
-                  background: 'transparent', border: '1.5px solid #ef444466', color: '#fca5a5',
+                  background: '#dc2626', border: 'none', color: '#fff',
                   borderRadius: 8, padding: '10px 22px', cursor: 'pointer',
-                  fontSize: 14, fontFamily: 'Georgia,serif',
+                  fontSize: 14, fontFamily: 'Georgia,serif', fontWeight: 700,
                 }}
               >Leave</button>
             </div>
@@ -402,31 +441,31 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
         </div>
       )}
 
-      {/* Top bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 540, margin: '0 auto 8px' }}>
-        <div>
-          <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: 3, color: '#4ade80' }}>♠ ACE</span>
-          <span style={{ fontSize: 11, color: '#4ade8088', marginLeft: 8 }}>@{username}</span>
-          <span style={{
-            fontSize: 10, marginLeft: 8, padding: '2px 7px', borderRadius: 6,
+      {/* Top bar: Lobby (left) · ACE + mode (centre) · Redeal (right) */}
+      <div style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: 720, margin: '0 auto 8px' }}>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start' }}>
+          <button onClick={handleLobbyClick} style={{ background: '#334155', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'Georgia,serif' }}>← Lobby</button>
+        </div>
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: 3, color: '#4ade80' }}>♠ ACE</div>
+          <div style={{
+            display: 'inline-block', marginTop: 2, fontSize: 10, padding: '2px 8px', borderRadius: 6,
             background: useAI ? '#1e3a5f' : '#3f2d1a',
             color: useAI ? '#93c5fd' : '#fcd34d',
             border: `1px solid ${useAI ? '#3b82f6' : '#a16207'}`,
           }}>
-            {useAI ? 'Smart AI' : 'Quick bots'}
-          </span>
+            {useAI ? '🧠 Smart AI' : '⚡ Quick bots'}
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button onClick={handleLobbyClick} style={{ background: 'transparent', border: '1px solid #4ade8066', color: '#4ade80', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12, fontFamily: 'Georgia,serif' }}>← Lobby</button>
-          <button onClick={handleRedealClick} style={{ background: 'transparent', border: '1px solid #4ade8066', color: '#4ade80', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12, fontFamily: 'Georgia,serif' }}>Redeal</button>
-          <button onClick={onOpenSettings} title="Settings" style={{ background: '#0f3d28', border: '1px solid #4ade8066', color: '#4ade80', borderRadius: 8, width: 32, height: 30, cursor: 'pointer', fontSize: 15 }}>⚙</button>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+          <button onClick={handleRedealClick} style={{ background: '#16a34a', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'Georgia,serif' }}>Redeal</button>
         </div>
       </div>
 
       {/* AI fallback notice */}
       {aiNotice && (
         <div style={{
-          maxWidth: 540, margin: '0 auto 8px',
+          maxWidth: 720, margin: '0 auto 8px',
           background: '#3f2d1a', border: '1px solid #a16207', borderRadius: 8,
           padding: '8px 12px', fontSize: 12, color: '#fcd34d',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
@@ -436,7 +475,7 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
         </div>
       )}
 
-      <div style={{ maxWidth: 540, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ flex: 1, width: '100%', maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
 
         {/* Game-over banner */}
         {game.phase === 'gameOver' && (
@@ -510,7 +549,7 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
           cards={myHand}
           validSet={validSet}
           isMyTurn={isMyTurn}
-          onPlay={card => { resetAfk(); setGame(g => g.phase === 'playing' ? applyPlay(g, 0, card) : g); }}
+          onPlay={card => { sounds.play(); resetAfk(); setGame(g => g.phase === 'playing' ? applyPlay(g, 0, card) : g); }}
         />
 
         {/* Play log */}

@@ -1,9 +1,8 @@
 import { API_BASE as BASE } from '../config';
-const TOKEN_KEY = 'ace_token';
-
-export function getToken()    { return localStorage.getItem(TOKEN_KEY); }
-export function setToken(t)   { localStorage.setItem(TOKEN_KEY, t); }
-export function clearToken()  { localStorage.removeItem(TOKEN_KEY); }
+// Token lives in native secure storage on apps, localStorage on web — behind
+// one interface so callers (and req() below) stay synchronous.
+export { getToken, setToken, clearToken } from '../native/storage';
+import { getToken } from '../native/storage';
 
 async function req(method, path, body) {
   const headers = { 'Content-Type': 'application/json' };

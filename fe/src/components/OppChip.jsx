@@ -6,13 +6,21 @@ import { NAMES } from '../constants';
 //   game      — full game state
 //   cur       — index of the player whose turn it is
 //   aiStatus  — truthy string while AI is thinking
+//   names     — seat labels (defaults to the offline NAMES; online passes real usernames)
+//   scale     — size multiplier (Arena scales chips with the board width)
 //   style     — positioning (left/top set by Arena)
-export default function OppChip({ idx, game, cur, aiStatus, style }) {
+export default function OppChip({ idx, game, cur, aiStatus, names = NAMES, scale = 1, style }) {
   const hand = game.hands[idx];
   const isActive = cur === idx;
   const isDone = game.finished.includes(idx);
   const isThinking = !!aiStatus && isActive;
   const visibleCards = Math.min(hand.length, 6);
+
+  // Card-back dimensions scale with the board.
+  const cw = Math.round(40 * scale);
+  const ch = Math.round(54 * scale);
+  const nameFont = Math.round(10 * scale);
+  const countFont = Math.round(10 * scale);
 
   return (
     <div style={{
@@ -22,25 +30,26 @@ export default function OppChip({ idx, game, cur, aiStatus, style }) {
       flexDirection: 'column',
       alignItems: 'center',
       gap: 2,
-      width: 60,
+      width: Math.round(60 * scale),
       ...style,
     }}>
       <div style={{
-        fontSize: 10, fontWeight: 700,
+        fontSize: nameFont, fontWeight: 700,
         color: isActive ? '#fde68a' : isDone ? '#4ade80' : '#cbe6d6',
         background: isActive ? '#fef3c722' : 'transparent',
         padding: '1px 6px', borderRadius: 6, whiteSpace: 'nowrap',
+        maxWidth: Math.round(84 * scale), overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
-        {NAMES[idx]} {isDone ? '✅' : isActive ? (isThinking ? '🤖' : '🎯') : ''}
+        {names[idx]} {isDone ? '✅' : isActive ? (isThinking ? '🤖' : '🎯') : ''}
       </div>
 
-      <div style={{ position: 'relative', height: 54, width: 46 }}>
+      <div style={{ position: 'relative', height: ch, width: cw + 6 }}>
         {hand.length === 0 ? (
           <div style={{
-            width: 42, height: 54, borderRadius: 6,
+            width: cw - 2, height: ch, borderRadius: 6,
             border: '1px dashed #166534',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 16, position: 'absolute', left: 2,
+            fontSize: Math.round(16 * scale), position: 'absolute', left: 2,
           }}>
             ✅
           </div>
@@ -48,7 +57,7 @@ export default function OppChip({ idx, game, cur, aiStatus, style }) {
           Array.from({ length: visibleCards }).map((_, i) => (
             <div key={i} style={{ position: 'absolute', left: i * 3, top: i * 1.5 }}>
               <div style={{
-                width: 40, height: 54, borderRadius: 6,
+                width: cw, height: ch, borderRadius: 6,
                 background: 'linear-gradient(135deg,#1e3a8a,#1d4ed8)',
                 border: '1.5px solid #1e40af',
                 boxShadow: '0 1px 3px #0004',
@@ -66,7 +75,7 @@ export default function OppChip({ idx, game, cur, aiStatus, style }) {
       </div>
 
       <div style={{
-        fontSize: 10,
+        fontSize: countFont,
         color: isActive ? '#fde68a' : '#86efac',
         background: '#06281aaa',
         padding: '1px 7px', borderRadius: 8, fontWeight: 700,

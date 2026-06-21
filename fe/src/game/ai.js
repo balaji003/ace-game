@@ -9,6 +9,13 @@ let sessionAINotified = false;
 export const isAINotified = () => sessionAINotified;
 export const markAINotified = () => { sessionAINotified = true; };
 
+// Once the backend AI fails in a game, we stop calling it for the rest of that
+// game and use the local bot — so a single failure doesn't hammer the API on
+// every move. Reset at the start of each game via resetAI().
+let aiDisabled = false;
+export const isAIDisabled = () => aiDisabled;
+export const resetAI = () => { aiDisabled = false; };
+
 // Simple local bot: dumps high cards when a cutter is behind you, otherwise plays low
 export function smartFallback(game, playerIdx, validCards) {
   const { ledSuit, roundOrder, turnIdx, suitVoids } = game;
@@ -28,9 +35,15 @@ export function smartFallback(game, playerIdx, validCards) {
   return lowest(validCards.filter(c => c.suit === bestSuit));
 }
 
-// Ask the backend to pick a move. Falls back to smartFallback on any error.
+// Ask the backend to pick a move. Falls back to smartFallback on any error,
+// and after the first failure stays on the local bot for the rest of the game.
 export async function askAI(game, playerIdx) {
   const validCards = legalMoves(game, playerIdx);
+
+  // AI already failed this game → don't call the API again, just use the bot.
+  if (aiDisabled) {
+    return { card: smartFallback(game, playerIdx, validCards), usedAI: false, reason: 'ai disabled for game' };
+  }
 
   const playersAfter = game.roundOrder.slice(game.turnIdx + 1);
   const payload = {
@@ -55,8 +68,10 @@ export async function askAI(game, playerIdx) {
     if (idx >= 0 && idx < validCards.length) {
       return { card: validCards[idx], usedAI: true };
     }
+    aiDisabled = true; // bad response → stop calling the API this game
     return { card: smartFallback(game, playerIdx, validCards), usedAI: false, reason: 'bad backend response' };
   } catch (e) {
+    aiDisabled = true; // request failed → stop calling the API this game
     return { card: smartFallback(game, playerIdx, validCards), usedAI: false, reason: e.status ? `backend ${e.status}` : 'network error' };
   }
 }
