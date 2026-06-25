@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react';
 import { AI_ENABLED } from '../config';
 import TablePreview from '../components/TablePreview';
 
+// Shared styles for the online-mode menu buttons.
+const menuBtnStyle = {
+  width: '100%', textAlign: 'left', cursor: 'pointer', borderRadius: 12, padding: '13px 16px',
+  marginBottom: 10, border: '1.5px solid #1e6a8e', background: '#0a2233',
+  color: '#fff', fontFamily: 'Georgia,serif',
+};
+const menuBtnTitle = { fontSize: 15, fontWeight: 700, marginBottom: 3, color: '#e0f2fe' };
+const menuBtnDesc  = { fontSize: 11, color: '#7dd3fc99', lineHeight: 1.4 };
+
 // Props:
 //   username       — logged-in username
 //   onStart        — called with (numOpponents, useAI)
@@ -9,7 +18,7 @@ import TablePreview from '../components/TablePreview';
 //   onOpenSettings — opens the settings panel
 //   minPlayers     — smallest allowed total players (from /api/config; default 3)
 //   maxPlayers     — largest allowed total players (from /api/config; default 7)
-export default function Lobby({ username, onStart, onPlayOnline, onOpenSettings, minPlayers = 3, maxPlayers = 7 }) {
+export default function Lobby({ username, onStart, onPlayOnline, onCreateRoom, onJoinRoom, onOpenSettings, onHowToPlay, minPlayers = 3, maxPlayers = 7 }) {
   // Player counts are TOTAL players (including the person selecting), so the
   // smallest option is the minimum room size — never a confusing "1".
   const lo = Math.max(2, minPlayers);
@@ -19,7 +28,9 @@ export default function Lobby({ username, onStart, onPlayOnline, onOpenSettings,
   const [players, setPlayers] = useState(() => Math.min(Math.max(4, lo), hi));   // offline total
   const [useAI, setUseAI] = useState(AI_ENABLED);
   const [showOnline, setShowOnline] = useState(false);
-  const [onlinePlayers, setOnlinePlayers] = useState(lo);                        // online total
+  const [onlineMode, setOnlineMode] = useState('menu');                          // 'menu' | 'quick' | 'create' | 'join'
+  const [onlinePlayers, setOnlinePlayers] = useState(lo);                        // online total (quick match / create)
+  const [joinCode, setJoinCode] = useState('');                                  // code entered to join a private room
   const total = players;
 
   // Keep selections inside the allowed range if config arrives/changes after mount.
@@ -40,10 +51,16 @@ export default function Lobby({ username, onStart, onPlayOnline, onOpenSettings,
           <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: 3, color: '#4ade80' }}>♠ ACE</span>
           <span style={{ fontSize: 11, color: '#4ade8088', marginLeft: 8 }}>@{username}</span>
         </div>
-        <button onClick={onOpenSettings} title="Settings" style={{
-          background: '#0f3d28', border: '1px solid #4ade8066', color: '#4ade80',
-          borderRadius: 8, width: 34, height: 32, cursor: 'pointer', fontSize: 16,
-        }}>⚙</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onHowToPlay} title="How to play" style={{
+            background: '#0f3d28', border: '1px solid #4ade8066', color: '#4ade80',
+            borderRadius: 8, width: 34, height: 32, cursor: 'pointer', fontSize: 16, fontWeight: 700,
+          }}>?</button>
+          <button onClick={onOpenSettings} title="Settings" style={{
+            background: '#0f3d28', border: '1px solid #4ade8066', color: '#4ade80',
+            borderRadius: 8, width: 34, height: 32, cursor: 'pointer', fontSize: 16,
+          }}>⚙</button>
+        </div>
       </div>
 
       <div style={{ maxWidth: 440, margin: '0 auto' }}>
@@ -102,7 +119,7 @@ export default function Lobby({ username, onStart, onPlayOnline, onOpenSettings,
         )}
 
         {/* Online multiplayer CTA — between bot options and Deal & Start */}
-        <button onClick={() => setShowOnline(true)} style={{
+        <button onClick={() => { setOnlineMode('menu'); setJoinCode(''); setShowOnline(true); }} style={{
           width: '100%', padding: 13, borderRadius: 12, marginBottom: 12,
           border: '1.5px solid #38bdf8', background: 'linear-gradient(135deg,#0ea5e9,#0369a1)',
           color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: 'Georgia,serif', letterSpacing: 1,
@@ -122,23 +139,11 @@ export default function Lobby({ username, onStart, onPlayOnline, onOpenSettings,
         </button>
       </div>
 
-      {/* Online opponent picker overlay */}
-      {showOnline && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 50, background: '#000000aa',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-        }}>
-          <div style={{
-            background: '#0c2d44', border: '1.5px solid #38bdf8', borderRadius: 16,
-            padding: '26px 26px', maxWidth: 360, width: '100%', textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 34, marginBottom: 6 }}>🌐</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#e0f2fe', marginBottom: 4 }}>Play Online</div>
-            <div style={{ fontSize: 12.5, color: '#7dd3fc', marginBottom: 20 }}>
-              Match with real players. How many players? (including you)
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(totalRange.length, 6)},1fr)`, gap: 8, marginBottom: 20 }}>
+      {/* Online overlay — pick how to play online */}
+      {showOnline && (() => {
+        const PlayerGrid = () => (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(totalRange.length, 6)},1fr)`, gap: 8, marginBottom: 16 }}>
               {totalRange.map(n => {
                 const selected = onlinePlayers === n;
                 return (
@@ -152,26 +157,118 @@ export default function Lobby({ username, onStart, onPlayOnline, onOpenSettings,
                 );
               })}
             </div>
-            <div style={{ fontSize: 11.5, color: '#7dd3fc', marginBottom: 4 }}>
+            <div style={{ fontSize: 11.5, color: '#7dd3fc', marginBottom: 18 }}>
               <strong>{onlinePlayers} players</strong> — you + {onlinePlayers - 1} {onlinePlayers - 1 === 1 ? 'other' : 'others'}
             </div>
-            <div style={{ fontSize: 11, color: '#7dd3fc99', marginBottom: 20 }}>
-              everyone must pick the same size to match
-            </div>
+          </>
+        );
 
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button onClick={() => setShowOnline(false)} style={{
-                background: 'transparent', border: '1.5px solid #38bdf866', color: '#7dd3fc',
-                borderRadius: 8, padding: '10px 22px', cursor: 'pointer', fontSize: 14, fontFamily: 'Georgia,serif',
-              }}>Cancel</button>
-              <button onClick={() => { setShowOnline(false); onPlayOnline?.(onlinePlayers - 1); }} style={{
-                background: 'linear-gradient(135deg,#0ea5e9,#0369a1)', border: 'none', color: '#fff',
-                borderRadius: 8, padding: '10px 26px', cursor: 'pointer', fontSize: 14, fontFamily: 'Georgia,serif', fontWeight: 700,
-              }}>Find Match →</button>
+        const cancelBtn = (label = 'Cancel', onClick = () => setShowOnline(false)) => (
+          <button onClick={onClick} style={{
+            background: 'transparent', border: '1.5px solid #38bdf866', color: '#7dd3fc',
+            borderRadius: 8, padding: '10px 22px', cursor: 'pointer', fontSize: 14, fontFamily: 'Georgia,serif',
+          }}>{label}</button>
+        );
+        const goBtn = (label, onClick, disabled = false) => (
+          <button onClick={onClick} disabled={disabled} style={{
+            background: disabled ? '#1e425a' : 'linear-gradient(135deg,#0ea5e9,#0369a1)', border: 'none',
+            color: disabled ? '#5b8299' : '#fff', borderRadius: 8, padding: '10px 26px',
+            cursor: disabled ? 'not-allowed' : 'pointer', fontSize: 14, fontFamily: 'Georgia,serif', fontWeight: 700,
+          }}>{label}</button>
+        );
+
+        return (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 50, background: '#000000aa',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+          }}>
+            <div style={{
+              background: '#0c2d44', border: '1.5px solid #38bdf8', borderRadius: 16,
+              padding: '26px 26px', maxWidth: 360, width: '100%', textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 34, marginBottom: 6 }}>🌐</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#e0f2fe', marginBottom: 14 }}>Play Online</div>
+
+              {/* Menu: choose how to play online */}
+              {onlineMode === 'menu' && (
+                <>
+                  <button onClick={() => setOnlineMode('quick')} style={menuBtnStyle}>
+                    <div style={menuBtnTitle}>⚡ Quick Match</div>
+                    <div style={menuBtnDesc}>Match with random online players</div>
+                  </button>
+                  <button onClick={() => setOnlineMode('create')} style={menuBtnStyle}>
+                    <div style={menuBtnTitle}>➕ Create Room</div>
+                    <div style={menuBtnDesc}>Start a private room and get a code for friends</div>
+                  </button>
+                  <button onClick={() => setOnlineMode('join')} style={menuBtnStyle}>
+                    <div style={menuBtnTitle}>🔑 Join with Code</div>
+                    <div style={menuBtnDesc}>Enter a friend's room code to join them</div>
+                  </button>
+                  <div style={{ marginTop: 8 }}>{cancelBtn('Close')}</div>
+                </>
+              )}
+
+              {/* Quick match — pick size, then matchmake */}
+              {onlineMode === 'quick' && (
+                <>
+                  <div style={{ fontSize: 12.5, color: '#7dd3fc', marginBottom: 18 }}>
+                    How many players? (including you)
+                  </div>
+                  <PlayerGrid />
+                  <div style={{ fontSize: 11, color: '#7dd3fc99', marginBottom: 18 }}>
+                    everyone must pick the same size to match
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                    {cancelBtn('← Back', () => setOnlineMode('menu'))}
+                    {goBtn('Find Match →', () => { setShowOnline(false); onPlayOnline?.(onlinePlayers - 1); })}
+                  </div>
+                </>
+              )}
+
+              {/* Create a private room — pick size, then wait for a code */}
+              {onlineMode === 'create' && (
+                <>
+                  <div style={{ fontSize: 12.5, color: '#7dd3fc', marginBottom: 18 }}>
+                    Room size? (including you)
+                  </div>
+                  <PlayerGrid />
+                  <div style={{ fontSize: 11, color: '#7dd3fc99', marginBottom: 18 }}>
+                    you'll get a code — the game starts when the room fills
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                    {cancelBtn('← Back', () => setOnlineMode('menu'))}
+                    {goBtn('Create Room →', () => { setShowOnline(false); onCreateRoom?.(onlinePlayers - 1); })}
+                  </div>
+                </>
+              )}
+
+              {/* Join an existing private room by code */}
+              {onlineMode === 'join' && (
+                <>
+                  <div style={{ fontSize: 12.5, color: '#7dd3fc', marginBottom: 18 }}>
+                    Enter the room code your friend shared
+                  </div>
+                  <input
+                    value={joinCode}
+                    onChange={e => setJoinCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    onKeyDown={e => e.key === 'Enter' && joinCode.length === 4 && (setShowOnline(false), onJoinRoom?.(joinCode))}
+                    placeholder="0000" inputMode="numeric" maxLength={4} autoFocus
+                    style={{
+                      width: '100%', boxSizing: 'border-box', textAlign: 'center',
+                      fontSize: 34, letterSpacing: 14, fontFamily: 'Georgia,serif',
+                      padding: '12px 0', borderRadius: 10, marginBottom: 18,
+                      background: '#0a2233', color: '#fff', border: '1.5px solid #1e6a8e', outline: 'none',
+                    }} />
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                    {cancelBtn('← Back', () => setOnlineMode('menu'))}
+                    {goBtn('Join →', () => { setShowOnline(false); onJoinRoom?.(joinCode); }, joinCode.length !== 4)}
+                  </div>
+                </>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

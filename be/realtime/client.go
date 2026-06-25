@@ -96,6 +96,10 @@ func (c *Client) readPump() {
 		switch in.Type {
 		case MsgJoinQueue:
 			c.hub.joinQueue(c, in.Opponents)
+		case MsgCreateRoom:
+			c.hub.createRoom(c, in.Opponents)
+		case MsgJoinRoom:
+			c.hub.joinRoom(c, in.Code)
 		case MsgPlayCard:
 			if r := c.currentRoom(); r != nil {
 				r.play(c, in.Suit, in.Rank)

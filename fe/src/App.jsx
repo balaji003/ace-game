@@ -8,8 +8,10 @@ import Lobby from './screens/Lobby';
 import GameScreen from './screens/GameScreen';
 import OnlineGameScreen from './screens/OnlineGameScreen';
 import WaitingRoom from './screens/WaitingRoom';
+import RoomLobby from './screens/RoomLobby';
 import SettingsPanel from './screens/SettingsPanel';
 import HistoryScreen from './screens/HistoryScreen';
+import HowToPlay from './screens/HowToPlay';
 
 // Normalize backend stats + history into the shape SettingsPanel expects
 async function fetchStats(limit = 10) {
@@ -38,6 +40,7 @@ export default function App() {
   const [gameOptions, setGameOptions] = useState({ opponents: 3, useAI: true });
   const [showSettings, setShowSettings] = useState(false);
   const [showHistory,  setShowHistory]  = useState(false);
+  const [showHowTo,    setShowHowTo]    = useState(false);
 
   // Online multiplayer state (server-driven via the shared socket)
   const [onlineOpps,   setOnlineOpps]   = useState(1);
@@ -47,6 +50,7 @@ export default function App() {
   const [onlinePrompt, setOnlinePrompt] = useState(null);  // no-response popup for me ({triesLeft,last,secondsLeft})
   const [peerIdle,     setPeerIdle]     = useState(null);  // "waiting for X" banner ({seat,secondsLeft})
   const [queueInfo,    setQueueInfo]    = useState(null);
+  const [roomLobby,    setRoomLobby]    = useState(null);  // private-room waiting state {code,joined,needed,names,isHost}
   const [socketStatus, setSocketStatus] = useState('idle');
   const [onlineError,  setOnlineError]  = useState(null);
 
@@ -77,6 +81,7 @@ export default function App() {
       },
       onBack: () => {
         const n = navRef.current;
+        if (n.showHowTo) { n.setShowHowTo(false); return true; }
         if (n.showHistory) { n.setShowHistory(false); return true; }
         if (n.showSettings) { n.setShowSettings(false); return true; }
         if (n.screen && n.screen !== 'lobby') { n.toLobby(); return true; }
@@ -97,9 +102,11 @@ export default function App() {
     const offs = [
       socket.onStatus(setSocketStatus),
       socket.on('queue', m => setQueueInfo(m)),
+      socket.on('room_lobby', m => { setRoomLobby(m); setOnlineError(null); setScreen('room'); }),
+      socket.on('room_closed', m => { setRoomLobby(null); setOnlineError(m.reason ? `Room closed — ${m.reason}` : 'Room closed'); }),
       socket.on('start', m => {
         setOnlineStart(m); setOnlineState(null); setOnlineEvent(null);
-        setOnlinePrompt(null); setPeerIdle(null); setOnlineError(null);
+        setOnlinePrompt(null); setPeerIdle(null); setOnlineError(null); setRoomLobby(null);
         setScreen('online');
       }),
       socket.on('state', m => setOnlineState(m)),
@@ -122,11 +129,25 @@ export default function App() {
     setScreen('waiting');
   };
 
+  const handleCreateRoom = opponents => {
+    setRoomLobby(null); setOnlineError(null);
+    socket.connect();
+    socket.send('create_room', { opponents });
+    setScreen('room');
+  };
+
+  const handleJoinRoom = code => {
+    setRoomLobby(null); setOnlineError(null);
+    socket.connect();
+    socket.send('join_room', { code });
+    setScreen('room');
+  };
+
   const exitOnline = (notifyServer = true) => {
     if (notifyServer) { try { socket.send('leave'); } catch {} }
     socket.disconnect();
     setOnlineStart(null); setOnlineState(null); setOnlineEvent(null);
-    setOnlinePrompt(null); setPeerIdle(null); setQueueInfo(null); setOnlineError(null);
+    setOnlinePrompt(null); setPeerIdle(null); setQueueInfo(null); setRoomLobby(null); setOnlineError(null);
     setScreen('lobby');
     refreshStats();
   };
@@ -134,8 +155,8 @@ export default function App() {
   // Keep the native back-button handler pointed at the latest nav state.
   useEffect(() => {
     navRef.current = {
-      screen, showSettings, showHistory, setShowSettings, setShowHistory,
-      toLobby: () => { (screen === 'online' || screen === 'waiting') ? exitOnline(true) : setScreen('lobby'); },
+      screen, showSettings, showHistory, showHowTo, setShowSettings, setShowHistory, setShowHowTo,
+      toLobby: () => { (screen === 'online' || screen === 'waiting' || screen === 'room') ? exitOnline(true) : setScreen('lobby'); },
     };
   });
 
@@ -186,7 +207,10 @@ export default function App() {
           username={user}
           onStart={startGame}
           onPlayOnline={handlePlayOnline}
+          onCreateRoom={handleCreateRoom}
+          onJoinRoom={handleJoinRoom}
           onOpenSettings={openSettings}
+          onHowToPlay={() => setShowHowTo(true)}
           minPlayers={gameConfig.min_players}
           maxPlayers={gameConfig.max_players}
         />
@@ -196,6 +220,15 @@ export default function App() {
         <WaitingRoom
           opponents={onlineOpps}
           queueInfo={queueInfo}
+          socketStatus={socketStatus}
+          error={onlineError}
+          onCancel={() => exitOnline(true)}
+        />
+      )}
+
+      {screen === 'room' && (
+        <RoomLobby
+          lobby={roomLobby}
           socketStatus={socketStatus}
           error={onlineError}
           onCancel={() => exitOnline(true)}
@@ -234,6 +267,10 @@ export default function App() {
 
       {showHistory && (
         <HistoryScreen onBack={() => setShowHistory(false)} />
+      )}
+
+      {showHowTo && (
+        <HowToPlay onBack={() => setShowHowTo(false)} />
       )}
 
       {showSettings && !showHistory && (

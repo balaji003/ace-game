@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { api, setToken } from '../services/api';
+import HowToPlay from './HowToPlay';
 
 function AceCard({ style }) {
   return (
@@ -120,6 +121,7 @@ export default function AuthScreen({ onLogin }) {
   const [resendCountdown, setResendCountdown] = useState(0);
 
   const [intro, setIntro] = useState(true); // true = show card zoom-out intro
+  const [showHowTo, setShowHowTo] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setIntro(false), 2800);
@@ -341,6 +343,8 @@ export default function AuthScreen({ onLogin }) {
       </div>
     );
   }
+
+  if (showHowTo) return <HowToPlay onBack={() => setShowHowTo(false)} />;
 
   return (
     <div style={{
@@ -570,6 +574,11 @@ export default function AuthScreen({ onLogin }) {
           )}
 
         </div>
+
+        <button onClick={() => setShowHowTo(true)} style={{
+          background: 'none', border: 'none', color: '#86efacaa', fontSize: 13,
+          marginTop: 18, cursor: 'pointer', fontFamily: 'Georgia,serif',
+        }}>New here? <span style={{ textDecoration: 'underline', color: '#4ade80' }}>How to play ♠</span></button>
       </div>
 
       <style>{`
