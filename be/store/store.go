@@ -72,9 +72,33 @@ func (s *mysqlStore) GetUserByPhone(phone string) (int64, string, error) {
 	return uid, username, err
 }
 
+// DeleteUser erases the account and all of its personal data. user_stats and
+// games are removed automatically via ON DELETE CASCADE, but otp_requests is
+// keyed by phone (no FK), so its rows — which hold the phone number and past
+// OTP codes — must be cleared explicitly. Both run in one transaction so the
+// account and its OTP trail are always deleted together.
 func (s *mysqlStore) DeleteUser(uid int64) error {
-	_, err := s.db.Exec(`DELETE FROM users WHERE id = ?`, uid)
-	return err
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	var phone sql.NullString
+	if err := tx.QueryRow(`SELECT phone FROM users WHERE id = ?`, uid).Scan(&phone); err != nil {
+		return err
+	}
+
+	if phone.Valid && phone.String != "" {
+		if _, err := tx.Exec(`DELETE FROM otp_requests WHERE phone = ?`, phone.String); err != nil {
+			return err
+		}
+	}
+
+	if _, err := tx.Exec(`DELETE FROM users WHERE id = ?`, uid); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (s *mysqlStore) GetStats(uid int64) (model.Stats, error) {

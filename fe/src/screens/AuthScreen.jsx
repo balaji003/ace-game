@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { api, setToken } from '../services/api';
+import { PAGE_BG_GREEN } from '../theme';
 import HowToPlay from './HowToPlay';
+import Logo from '../components/Logo';
 
 function AceCard({ style }) {
   return (
@@ -12,13 +14,13 @@ function AceCard({ style }) {
       position: 'relative', flexShrink: 0,
       ...style,
     }}>
-      <div style={{ position: 'absolute', top: 8, left: 11, fontSize: 20, fontWeight: 700, color: '#111', lineHeight: 1.1, fontFamily: 'Georgia,serif' }}>
+      <div style={{ position: 'absolute', top: 8, left: 11, fontSize: 20, fontWeight: 700, color: '#111', lineHeight: 1.1, fontFamily: 'Verdana, sans-serif' }}>
         A<br />♠
       </div>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 76, color: '#111', fontFamily: 'Georgia,serif', userSelect: 'none' }}>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 76, color: '#111', fontFamily: 'Verdana, sans-serif', userSelect: 'none' }}>
         ♠
       </div>
-      <div style={{ position: 'absolute', bottom: 8, right: 11, fontSize: 20, fontWeight: 700, color: '#111', lineHeight: 1.1, transform: 'rotate(180deg)', fontFamily: 'Georgia,serif' }}>
+      <div style={{ position: 'absolute', bottom: 8, right: 11, fontSize: 20, fontWeight: 700, color: '#111', lineHeight: 1.1, transform: 'rotate(180deg)', fontFamily: 'Verdana, sans-serif' }}>
         A<br />♠
       </div>
     </div>
@@ -28,12 +30,12 @@ function AceCard({ style }) {
 const inputStyle = {
   width: '100%', boxSizing: 'border-box', padding: '11px 14px', borderRadius: 9,
   border: '1.5px solid #16653488', background: '#06281a', color: '#f0fdf4',
-  fontSize: 15, fontFamily: 'Georgia,serif', outline: 'none',
+  fontSize: 15, fontFamily: 'Verdana, sans-serif', outline: 'none',
 };
 
 const popupBtnStyle = {
   flex: 1, padding: '10px 0', borderRadius: 8, border: '1.5px solid #16653488',
-  background: '#06281a', fontSize: 13, fontFamily: 'Georgia,serif', cursor: 'pointer',
+  background: '#06281a', fontSize: 13, fontFamily: 'Verdana, sans-serif', cursor: 'pointer',
 };
 
 function Popup({ conflict, username, onClose, actions }) {
@@ -78,7 +80,7 @@ function Popup({ conflict, username, onClose, actions }) {
           background: '#0a2e1c', border: '1.5px solid #166534',
           borderRadius: 16, padding: '28px 22px',
           boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
-          textAlign: 'center', fontFamily: 'Georgia,serif',
+          textAlign: 'center', fontFamily: 'Verdana, sans-serif',
           animation: 'popEmblem 0.25s cubic-bezier(.2,1.4,.5,1) both',
         }}
       >
@@ -279,7 +281,7 @@ export default function AuthScreen({ onLogin }) {
     <button onClick={onClick} disabled={disabled || busy} style={{
       width: '100%', marginTop: 18, padding: 12, borderRadius: 9, border: 'none',
       background: disabled || busy ? '#166534' : 'linear-gradient(135deg,#16a34a,#15803d)',
-      color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: 'Georgia,serif',
+      color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: 'Verdana, sans-serif',
       letterSpacing: 1, cursor: disabled || busy ? 'not-allowed' : 'pointer',
       boxShadow: '0 4px 14px #0004',
     }}>
@@ -290,7 +292,7 @@ export default function AuthScreen({ onLogin }) {
   const linkBtn = (label, onClick) => (
     <button onClick={onClick} style={{
       background: 'none', border: 'none', color: '#86efac88', fontSize: 12,
-      marginTop: 14, cursor: 'pointer', fontFamily: 'Georgia,serif', textDecoration: 'underline',
+      marginTop: 14, cursor: 'pointer', fontFamily: 'Verdana, sans-serif', textDecoration: 'underline',
     }}>{label}</button>
   );
 
@@ -318,16 +320,16 @@ export default function AuthScreen({ onLogin }) {
     return (
       <div style={{
         position: 'fixed', inset: 0, zIndex: 9999,
-        background: 'radial-gradient(ellipse at 50% 40%,#0f4d2a,#061a0f)',
+        background: PAGE_BG_GREEN,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexDirection: 'column', gap: 24,
         animation: 'introFade 2.8s ease forwards',
       }}>
         <AceCard style={{ animation: 'cardZoomOut 1.6s cubic-bezier(.1,1,.4,1) both' }} />
         <div style={{
-          fontSize: 32, fontWeight: 700, letterSpacing: 10, color: '#4ade80',
+          fontSize: 32, fontWeight: 700, letterSpacing: 10, color: '#15803d',
           animation: 'cardZoomOut 1.6s cubic-bezier(.1,1,.4,1) 0.1s both',
-          fontFamily: 'Georgia,serif',
+          fontFamily: 'Verdana, sans-serif',
         }}>ACE</div>
         <style>{`
           @keyframes cardZoomOut {
@@ -349,8 +351,8 @@ export default function AuthScreen({ onLogin }) {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'radial-gradient(ellipse at 50% 30%,#1a7a4f,#0a2e1c 75%)',
-      fontFamily: 'Georgia,serif', padding: 20,
+      background: PAGE_BG_GREEN,
+      fontFamily: 'Verdana, sans-serif', padding: 20,
       animation: 'formFadeIn 0.4s ease both',
     }}>
       <Popup
@@ -364,9 +366,11 @@ export default function AuthScreen({ onLogin }) {
 
         {/* Logo */}
         <div style={{ marginBottom: 6 }}>
-          <div style={{ fontSize: 64, lineHeight: 1, filter: 'drop-shadow(0 4px 12px #0006)' }}>♠</div>
-          <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: 8, color: '#4ade80', marginTop: 4 }}>ACE</div>
-          <div style={{ fontSize: 12, color: '#86efac99', letterSpacing: 2, marginTop: 2 }}>THE CUTTHROAT CARD GAME</div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <Logo size={96} showText={false} focus="50% 22%" />
+          </div>
+          <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: 8, color: '#111', marginTop: 10 }}>ACE</div>
+          <div style={{ fontSize: 12, color: '#000000aa', letterSpacing: 2, marginTop: 2 }}>THE LAST HAND</div>
         </div>
 
         <div style={{
@@ -381,7 +385,7 @@ export default function AuthScreen({ onLogin }) {
                 {['login', 'signup'].map(m => (
                   <button key={m} onClick={() => switchMode(m)} style={{
                     flex: 1, padding: 8, borderRadius: 7, border: 'none', cursor: 'pointer',
-                    fontSize: 13, fontFamily: 'Georgia,serif', fontWeight: 700, letterSpacing: 0.5,
+                    fontSize: 13, fontFamily: 'Verdana, sans-serif', fontWeight: 700, letterSpacing: 0.5,
                     background: mode === m ? '#16a34a' : 'transparent',
                     color: mode === m ? '#fff' : '#86efac99',
                   }}>
@@ -446,7 +450,7 @@ export default function AuthScreen({ onLogin }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14 }}>
                 {linkBtn('← Back', resetToAuth)}
                 {resendCountdown > 0
-                  ? <span style={{ fontSize: 12, color: '#86efac44', marginTop: 14, fontFamily: 'Georgia,serif' }}>Resend in {resendCountdown}s</span>
+                  ? <span style={{ fontSize: 12, color: '#86efac44', marginTop: 14, fontFamily: 'Verdana, sans-serif' }}>Resend in {resendCountdown}s</span>
                   : linkBtn('Resend OTP', () => { setOtp(''); setPhoneToken(''); handleSendSignupOTP(); })
                 }
               </div>
@@ -498,7 +502,7 @@ export default function AuthScreen({ onLogin }) {
               <button onClick={() => onLogin(username.trim().toLowerCase())} style={{
                 width: '100%', padding: 12, borderRadius: 9, border: 'none',
                 background: 'linear-gradient(135deg,#16a34a,#15803d)',
-                color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: 'Georgia,serif',
+                color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: 'Verdana, sans-serif',
                 letterSpacing: 1, cursor: 'pointer', boxShadow: '0 4px 14px #0004',
               }}>
                 Start Playing →
@@ -544,7 +548,7 @@ export default function AuthScreen({ onLogin }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14 }}>
                 {linkBtn('← Back', () => setStep('recover-phone'))}
                 {resendCountdown > 0
-                  ? <span style={{ fontSize: 12, color: '#86efac44', marginTop: 14, fontFamily: 'Georgia,serif' }}>Resend in {resendCountdown}s</span>
+                  ? <span style={{ fontSize: 12, color: '#86efac44', marginTop: 14, fontFamily: 'Verdana, sans-serif' }}>Resend in {resendCountdown}s</span>
                   : linkBtn('Resend OTP', () => { setOtp(''); handleSendRecoverOTP(); })
                 }
               </div>
@@ -554,7 +558,7 @@ export default function AuthScreen({ onLogin }) {
           {/* ── Recovery: success ─────────────────────────────────────── */}
           {step === 'recover-done' && (
             <>
-              <div style={{ fontSize: 28, marginBottom: 10 }}>♠</div>
+              <div style={{ fontSize: 28, marginBottom: 10 }}>🂡</div>
               <div style={{ fontSize: 13, color: '#86efac88', marginBottom: 6 }}>YOUR USERNAME IS</div>
               <div style={{
                 fontSize: 24, fontWeight: 700, color: '#4ade80', letterSpacing: 2,
@@ -565,7 +569,7 @@ export default function AuthScreen({ onLogin }) {
               <button onClick={() => { setUsername(recoveredUsername); setMode('login'); resetToAuth(); }} style={{
                 width: '100%', padding: 12, borderRadius: 9, border: 'none',
                 background: 'linear-gradient(135deg,#16a34a,#15803d)',
-                color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: 'Georgia,serif',
+                color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: 'Verdana, sans-serif',
                 letterSpacing: 1, cursor: 'pointer',
               }}>
                 Log In
@@ -576,9 +580,9 @@ export default function AuthScreen({ onLogin }) {
         </div>
 
         <button onClick={() => setShowHowTo(true)} style={{
-          background: 'none', border: 'none', color: '#86efacaa', fontSize: 13,
-          marginTop: 18, cursor: 'pointer', fontFamily: 'Georgia,serif',
-        }}>New here? <span style={{ textDecoration: 'underline', color: '#4ade80' }}>How to play ♠</span></button>
+          background: 'none', border: 'none', color: '#111', fontSize: 13,
+          marginTop: 18, cursor: 'pointer', fontFamily: 'Verdana, sans-serif',
+        }}>New here? <span style={{ textDecoration: 'underline', color: '#111' }}>How to play 🂡</span></button>
       </div>
 
       <style>{`

@@ -3,6 +3,7 @@ import { api, clearToken, getToken } from './services/api';
 import { socket } from './services/socket';
 import { initNativeShell } from './native';
 import { hydrateToken } from './native/storage';
+import { PAGE_BG_GREEN } from './theme';
 import AuthScreen from './screens/AuthScreen';
 import Lobby from './screens/Lobby';
 import GameScreen from './screens/GameScreen';
@@ -37,7 +38,7 @@ export default function App() {
   const [stats, setStats]         = useState(null);
   const [gameConfig, setGameConfig] = useState({ watch_countdown_secs: 10, afk_warn_secs: 20, afk_grace_secs: 10, max_turn_retries: 3, min_players: 3, max_players: 7, recent_games_limit: 10 });
   const [screen, setScreen] = useState('lobby');   // 'lobby' | 'game' | 'waiting' | 'online'
-  const [gameOptions, setGameOptions] = useState({ opponents: 3, useAI: true });
+  const [gameOptions, setGameOptions] = useState({ opponents: 3, useAI: true, practice: false });
   const [showSettings, setShowSettings] = useState(false);
   const [showHistory,  setShowHistory]  = useState(false);
   const [showHowTo,    setShowHowTo]    = useState(false);
@@ -177,23 +178,25 @@ export default function App() {
   };
 
   const handleGameEnd = async result => {
+    // Coached practice sessions don't count toward stats — the coach plays for you.
+    if (gameOptions.practice) return;
     try {
-      await api.recordGame({ ...result, mode: gameOptions.useAI ? 'vs AI' : 'vs bots' });
+      await api.recordGame({ ...result, mode: 'Practice' });
       await refreshStats();
     } catch {}
   };
 
   const openSettings = () => { refreshStats(); setShowSettings(true); };
 
-  const startGame = (opponents, useAI) => {
-    setGameOptions({ opponents, useAI });
+  const startGame = (opponents, useAI, practice = false) => {
+    setGameOptions({ opponents, useAI, practice });
     setScreen('game');
   };
 
   if (checking) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a2e1c', color: '#4ade80', fontFamily: 'Georgia,serif', fontSize: 40 }}>
-        ♠
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: PAGE_BG_GREEN }}>
+        <img src="/logo.png" alt="ACE" style={{ height: 120, width: 'auto', objectFit: 'contain', filter: 'drop-shadow(0 4px 14px rgba(0,0,0,0.35))' }} />
       </div>
     );
   }
@@ -251,10 +254,11 @@ export default function App() {
 
       {screen === 'game' && (
         <GameScreen
-          key={`${gameOptions.opponents}-${gameOptions.useAI}`}
+          key={`${gameOptions.opponents}-${gameOptions.useAI}-${gameOptions.practice}`}
           username={user}
           nPlayers={gameOptions.opponents + 1}
           useAI={gameOptions.useAI}
+          practice={gameOptions.practice}
           onExit={() => setScreen('lobby')}
           onOpenSettings={openSettings}
           onGameEnd={handleGameEnd}

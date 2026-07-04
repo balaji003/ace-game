@@ -1,24 +1,28 @@
 import { useState, useEffect, useRef } from 'react';
-import { NAMES, SUITS, RANK_VAL } from '../constants';
-import { initGame, resolveRound, applyPlay, legalMoves } from '../game/engine';
-import { askAI, smartFallback, isAINotified, markAINotified, resetAI } from '../game/ai';
+import { NAMES, SUITS, RANK_VAL, IS_RED } from '../constants';
+import { initGame, resolveRound, applyPlay } from '../game/engine';
+import { pickMove, explainMove } from '../game/ai';
 import * as haptics from '../native/haptics';
 import { sounds } from '../native/sound';
 import { highestOf } from '../utils/deck';
+import { AI_PLAY_MS, RESULT_PAUSE_MS } from '../config';
+import { BOARD_BG_GREEN } from '../theme';
 import Arena from '../components/Arena';
 import FannedHand from '../components/FannedHand';
+import DealAnimation from '../components/DealAnimation';
+import Logo from '../components/Logo';
 
 // Props:
 //   username       — logged-in username (display only)
 //   nPlayers       — total players including human
-//   useAI          — true = call backend AI, false = local quick bots
+//   useAI          — kept for compatibility; opponents are always strategic local bots
 //   onExit         — go back to Lobby
 //   onOpenSettings — opens the settings panel
 //   onGameEnd      — called with { won, placement, opponents } when game finishes
-export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSettings, onGameEnd, watchCountdownSecs = 10, afkWarnSecs = 20, afkGraceSecs = 10, maxRetries = 3 }) {
+export default function GameScreen({ username, nPlayers, useAI, practice = false, onExit, onOpenSettings, onGameEnd, watchCountdownSecs = 10, afkWarnSecs = 20, afkGraceSecs = 10, maxRetries = 3 }) {
   const [game, setGame] = useState(() => initGame(nPlayers));
+  const [dealing, setDealing] = useState(true);   // start-of-game deal animation
   const [aiStatus, setAiStatus] = useState('');
-  const [aiNotice, setAiNotice] = useState('');
   const [confirmLeave, setConfirmLeave]   = useState(false);
   const [confirmRedeal, setConfirmRedeal] = useState(false);
   const [watchPrompt, setWatchPrompt]     = useState(false);
@@ -54,10 +58,6 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
   };
   const afkTriesLeft = maxRetries - afkRetries;
 
-  // Report result exactly once when the game ends
-  // Each fresh game retries the backend AI once (resets the per-game disable flag)
-  useEffect(() => { resetAI(); }, []);
-
   // Haptic + sound cues on key transitions.
   const myTurnNow = game.phase === 'playing' && game.roundOrder[game.turnIdx] === 0;
   const prevTurn = useRef(false), prevPhase = useRef(''), overFired = useRef(false);
@@ -66,7 +66,10 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
     prevTurn.current = myTurnNow;
   }, [myTurnNow]);
   useEffect(() => {
-    if (game.phase === 'result' && prevPhase.current !== 'result' && game.resultType === 'cut') { haptics.impact(); sounds.cut(); }
+    if (game.phase === 'result' && prevPhase.current !== 'result') {
+      if (game.resultType === 'cut') { haptics.impact(); sounds.cut(); }
+      else if (game.resultType === 'dead') { haptics.tap(); sounds.dead(); }
+    }
     prevPhase.current = game.phase;
   }, [game.phase, game.resultType]);
   useEffect(() => {
@@ -155,7 +158,7 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [game.log]);
 
-  // Show result for 2.5s then advance to the next round
+  // Hold the result on screen (RESULT_PAUSE_MS) then advance to the next round.
   useEffect(() => {
     if (game.phase !== 'result') return;
     const timer = setTimeout(() => {
@@ -168,53 +171,37 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
         }
         return next;
       });
-    }, 2500);
+    }, RESULT_PAUSE_MS);
     return () => clearTimeout(timer);
   }, [game.phase, game.resultMsg]);
 
   // Trigger AI move whenever pendingAI is set
   useEffect(() => {
-    if (!game.pendingAI || game.phase !== 'playing') return;
+    if (dealing || !game.pendingAI || game.phase !== 'playing') return;
     const cur = game.roundOrder[game.turnIdx];
     if (cur === 0 || aiInFlight.current) return;
 
     aiInFlight.current = true;
     const snapshot = JSON.parse(JSON.stringify(game));
 
-    if (!useAI) {
-      // Quick bots: instant local logic
-      const card = smartFallback(snapshot, cur, legalMoves(snapshot, cur));
-      setTimeout(() => {
-        aiInFlight.current = false;
-        setGame(g => {
-          if (g.phase !== 'playing' || g.roundOrder[g.turnIdx] !== cur) return g;
-          return { ...applyPlay(g, cur, card), pendingAI: false };
-        });
-      }, 400 + Math.random() * 300);
-      return;
-    }
-
-    // Smart AI: ask backend; fall back silently on any error
+    // Strategic bot (memory + cut/lead tactics), runs fully locally. The
+    // "thinking…" pause is purely cosmetic so moves don't snap instantly.
+    const card = pickMove(snapshot, cur);
     setAiStatus(`${NAMES[cur]} is thinking…`);
     setTimeout(() => {
-      askAI(snapshot, cur).then(({ card, usedAI, reason }) => {
-        aiInFlight.current = false;
-        setAiStatus('');
-        if (!usedAI && !isAINotified()) {
-          markAINotified();
-          setAiNotice(`AI unreachable (${reason}). Falling back to quick bots.`);
-          setTimeout(() => setAiNotice(''), 6000);
-        }
-        setGame(g => {
-          if (g.phase !== 'playing' || g.roundOrder[g.turnIdx] !== cur) return g;
-          return { ...applyPlay(g, cur, card), pendingAI: false };
-        });
+      aiInFlight.current = false;
+      setAiStatus('');
+      setGame(g => {
+        if (g.phase !== 'playing' || g.roundOrder[g.turnIdx] !== cur) return g;
+        return { ...applyPlay(g, cur, card), pendingAI: false };
       });
-    }, 500 + Math.random() * 350);
-  }, [game.pendingAI, game.turnIdx, useAI]);
+    }, AI_PLAY_MS + Math.random() * 300);
+  }, [game.pendingAI, game.turnIdx, dealing]);
 
-  // Re-arm pendingAI after a round clears (e.g. if first player to go is AI)
+  // Re-arm pendingAI after a round clears (e.g. if first player to go is AI).
+  // Also fires when the deal animation ends so a bot starter takes its turn.
   useEffect(() => {
+    if (dealing) return;
     if (game.phase === 'playing' && !game.pendingAI) {
       const cur = game.roundOrder[game.turnIdx];
       if (cur !== 0 && !aiInFlight.current) {
@@ -222,7 +209,7 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game.phase, game.turnIdx]);
+  }, [game.phase, game.turnIdx, dealing]);
 
   const isMyTurn = game.phase === 'playing' && game.roundOrder[game.turnIdx] === 0;
 
@@ -246,6 +233,11 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
   const cur = game.phase === 'playing' ? game.roundOrder[game.turnIdx] : -1;
   const highestCard = game.roundCards.length && game.ledSuit ? highestOf(game.roundCards, game.ledSuit) : null;
 
+  // Practice coach: when it's the human's turn, run the bot's own logic from
+  // seat 0 to recommend a card and explain why. Read-only; never mutates state.
+  const coach = (practice && isMyTurn && !dealing) ? explainMove(game, 0) : null;
+  const suggestKey = coach ? coach.card.suit + coach.card.rank : null;
+
   const startNewGame = () => {
     aiInFlight.current = false;
     setAiStatus('');
@@ -256,8 +248,8 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
     setWatching(false);
     setWatchCountdown(0);
     resetAfk();
-    resetAI();   // retry the backend AI once in the new game
     setGame(initGame(nPlayers));
+    setDealing(true);
   };
 
   const handleRedealClick = () => {
@@ -279,10 +271,13 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'radial-gradient(ellipse at 50% 40%,#166534,#0d3d22)',
-      fontFamily: 'Georgia,serif', color: '#fff', padding: 10,
+      background: BOARD_BG_GREEN,
+      fontFamily: 'Verdana, sans-serif', color: '#14532d', padding: 10,
       display: 'flex', flexDirection: 'column',
     }}>
+      {/* Start-of-game deal animation */}
+      {dealing && <DealAnimation n={game.n} theme="green" onDone={() => setDealing(false)} />}
+
       {/* Watch game prompt — shown when human wins */}
       {watchPrompt && (
         <div style={{
@@ -309,14 +304,14 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
                 onClick={() => { setWatchPrompt(false); setWatching(true); }}
                 style={{
                   background: '#16a34a', border: 'none', color: '#fff',
-                  borderRadius: 8, padding: '10px 22px', cursor: 'pointer', fontSize: 14, fontFamily: 'Georgia,serif', fontWeight: 700,
+                  borderRadius: 8, padding: '10px 22px', cursor: 'pointer', fontSize: 14, fontFamily: 'Verdana, sans-serif', fontWeight: 700,
                 }}
               >Watch Game</button>
               <button
                 onClick={onExit}
                 style={{
                   background: '#334155', border: 'none', color: '#fff', fontWeight: 700,
-                  borderRadius: 8, padding: '10px 22px', cursor: 'pointer', fontSize: 14, fontFamily: 'Georgia,serif',
+                  borderRadius: 8, padding: '10px 22px', cursor: 'pointer', fontSize: 14, fontFamily: 'Verdana, sans-serif',
                 }}
               >Lobby</button>
             </div>
@@ -345,14 +340,14 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
                 onClick={() => setConfirmRedeal(false)}
                 style={{
                   background: '#334155', border: 'none', color: '#fff', fontWeight: 700,
-                  borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 13, fontFamily: 'Georgia,serif',
+                  borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 13, fontFamily: 'Verdana, sans-serif',
                 }}
               >Keep playing</button>
               <button
                 onClick={startNewGame}
                 style={{
                   background: '#dc2626', border: 'none', color: '#fff',
-                  borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 13, fontFamily: 'Georgia,serif', fontWeight: 700,
+                  borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 13, fontFamily: 'Verdana, sans-serif', fontWeight: 700,
                 }}
               >Redeal</button>
             </div>
@@ -381,14 +376,14 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
                 onClick={() => setConfirmLeave(false)}
                 style={{
                   background: '#334155', border: 'none', color: '#fff', fontWeight: 700,
-                  borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 13, fontFamily: 'Georgia,serif',
+                  borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 13, fontFamily: 'Verdana, sans-serif',
                 }}
               >Keep playing</button>
               <button
                 onClick={onExit}
                 style={{
                   background: '#dc2626', border: 'none', color: '#fff',
-                  borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 13, fontFamily: 'Georgia,serif', fontWeight: 700,
+                  borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 13, fontFamily: 'Verdana, sans-serif', fontWeight: 700,
                 }}
               >Leave</button>
             </div>
@@ -425,7 +420,7 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
                 style={{
                   background: '#16a34a', border: 'none', color: '#fff',
                   borderRadius: 8, padding: '10px 22px', cursor: 'pointer',
-                  fontSize: 14, fontFamily: 'Georgia,serif', fontWeight: 700,
+                  fontSize: 14, fontFamily: 'Verdana, sans-serif', fontWeight: 700,
                 }}
               >I'm Here!</button>
               <button
@@ -433,7 +428,7 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
                 style={{
                   background: '#dc2626', border: 'none', color: '#fff',
                   borderRadius: 8, padding: '10px 22px', cursor: 'pointer',
-                  fontSize: 14, fontFamily: 'Georgia,serif', fontWeight: 700,
+                  fontSize: 14, fontFamily: 'Verdana, sans-serif', fontWeight: 700,
                 }}
               >Leave</button>
             </div>
@@ -444,36 +439,16 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
       {/* Top bar: Lobby (left) · ACE + mode (centre) · Redeal (right) */}
       <div style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: 720, margin: '0 auto 8px' }}>
         <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start' }}>
-          <button onClick={handleLobbyClick} style={{ background: '#334155', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'Georgia,serif' }}>← Lobby</button>
+          <button onClick={handleLobbyClick} style={{ background: '#334155', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'Verdana, sans-serif' }}>← Lobby</button>
         </div>
         <div style={{ flex: 1, textAlign: 'center' }}>
-          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: 3, color: '#4ade80' }}>♠ ACE</div>
-          <div style={{
-            display: 'inline-block', marginTop: 2, fontSize: 10, padding: '2px 8px', borderRadius: 6,
-            background: useAI ? '#1e3a5f' : '#3f2d1a',
-            color: useAI ? '#93c5fd' : '#fcd34d',
-            border: `1px solid ${useAI ? '#3b82f6' : '#a16207'}`,
-          }}>
-            {useAI ? '🧠 Smart AI' : '⚡ Quick bots'}
-          </div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}><Logo size={34} fontSize={20} textColor="#111" /></div>
         </div>
         <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={handleRedealClick} style={{ background: '#16a34a', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'Georgia,serif' }}>Redeal</button>
+          <button onClick={handleRedealClick} style={{ background: '#16a34a', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'Verdana, sans-serif' }}>Redeal</button>
         </div>
       </div>
 
-      {/* AI fallback notice */}
-      {aiNotice && (
-        <div style={{
-          maxWidth: 720, margin: '0 auto 8px',
-          background: '#3f2d1a', border: '1px solid #a16207', borderRadius: 8,
-          padding: '8px 12px', fontSize: 12, color: '#fcd34d',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-        }}>
-          <span>⚠ {aiNotice}</span>
-          <button onClick={() => setAiNotice('')} style={{ background: 'transparent', border: 'none', color: '#fcd34d99', cursor: 'pointer', fontSize: 14 }}>✕</button>
-        </div>
-      )}
 
       <div style={{ flex: 1, width: '100%', maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
 
@@ -494,11 +469,11 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button onClick={startNewGame} style={{
                 background: game.loser === 0 ? '#dc2626' : '#16a34a', border: 'none', color: '#fff',
-                borderRadius: 8, padding: '10px 24px', cursor: 'pointer', fontSize: 14, fontFamily: 'Georgia,serif', fontWeight: 700,
+                borderRadius: 8, padding: '10px 24px', cursor: 'pointer', fontSize: 14, fontFamily: 'Verdana, sans-serif', fontWeight: 700,
               }}>Redeal ({game.n})</button>
               <button onClick={onExit} style={{
                 background: 'transparent', border: '1.5px solid #4ade8066', color: '#4ade80',
-                borderRadius: 8, padding: '10px 24px', cursor: 'pointer', fontSize: 14, fontFamily: 'Georgia,serif', fontWeight: 700,
+                borderRadius: 8, padding: '10px 24px', cursor: 'pointer', fontSize: 14, fontFamily: 'Verdana, sans-serif', fontWeight: 700,
               }}>Lobby</button>
             </div>
           </div>
@@ -508,20 +483,20 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
 
         {/* My status bar */}
         <div style={{
-          background: isMyTurn ? '#fef9c311' : '#14532d44',
-          border: `1.5px solid ${isMyTurn ? '#fde68a' : '#166534'}`,
+          background: isMyTurn ? '#fef9c3cc' : '#ffffffbb',
+          border: `1.5px solid ${isMyTurn ? '#eab308' : '#16a34a55'}`,
           borderRadius: 8, padding: '5px 10px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <span style={{ color: '#4ade80', fontWeight: 700, fontSize: 13 }}>You</span>
-          <span style={{ color: '#86efac', fontSize: 12 }}>
+          <span style={{ color: '#111', fontWeight: 700, fontSize: 13 }}>You</span>
+          <span style={{ color: '#222', fontSize: 12 }}>
             {myHand.length} cards
             {isMyTurn && !game.ledSuit && ' · Lead any card'}
             {isMyTurn && game.ledSuit && game.hands[0].some(c => c.suit === game.ledSuit) && ` · Follow ${game.ledSuit}`}
             {isMyTurn && game.ledSuit && !game.hands[0].some(c => c.suit === game.ledSuit) && ` · Must cut! (no ${game.ledSuit})`}
           </span>
           {game.finished.includes(0) && (
-            <span style={{ fontSize: 12, color: '#4ade80' }}>✅ #{game.finished.indexOf(0) + 1}</span>
+            <span style={{ fontSize: 12, color: '#111' }}>✅ #{game.finished.indexOf(0) + 1}</span>
           )}
         </div>
 
@@ -545,10 +520,31 @@ export default function GameScreen({ username, nPlayers, useAI, onExit, onOpenSe
           </div>
         )}
 
+        {/* Practice coach — suggests a card (same logic the bots use) + reason */}
+        {coach && (
+          <div style={{
+            background: 'linear-gradient(135deg,#0c2d44,#0a2233)',
+            border: '1.5px solid #38bdf8', borderRadius: 8, padding: '7px 11px',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <span style={{ fontSize: 20, flexShrink: 0 }}>🎓</span>
+            <div style={{ flex: 1, lineHeight: 1.35 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#e0f2fe' }}>
+                Coach suggests{' '}
+                <span style={{ color: IS_RED(coach.card.suit) ? '#fca5a5' : '#fff' }}>
+                  {coach.card.rank}{coach.card.suit}
+                </span>
+              </div>
+              <div style={{ fontSize: 11, color: '#7dd3fc', marginTop: 2 }}>{coach.reason}</div>
+            </div>
+          </div>
+        )}
+
         <FannedHand
           cards={myHand}
           validSet={validSet}
           isMyTurn={isMyTurn}
+          suggestKey={suggestKey}
           onPlay={card => { sounds.play(); resetAfk(); setGame(g => g.phase === 'playing' ? applyPlay(g, 0, card) : g); }}
         />
 

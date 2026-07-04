@@ -38,6 +38,7 @@ export default function Arena({ game, cur, aiStatus, highestCard, names = NAMES,
   const arcRx = w < 360 ? 38 : 42;
   const arcCenterY = height * 0.4;
   const arcRy = height * (opponents >= 5 ? 0.34 : 0.3);
+  const tableW = Math.round(Math.min(400, Math.max(220, w * 0.66)));
 
   // Place opponents evenly along a half-arc from left to right
   const seats = Array.from({ length: opponents }, (_, i) => {
@@ -87,10 +88,36 @@ export default function Arena({ game, cur, aiStatus, highestCard, names = NAMES,
         />
       ))}
 
-      {/* Centre table */}
+      {/* Bottom-centre stack: result banner (above) + centre table */}
       <div style={{
         position: 'absolute', left: '50%', bottom: 8, transform: 'translateX(-50%)',
-        width: '64%', maxWidth: Math.round(Math.min(400, Math.max(220, w * 0.66))), minHeight: 128,
+        width: tableW, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+      }}>
+
+      {/* Result banner — sits ABOVE the pile so the DEAD/CUT icon never hides
+          the played cards. */}
+      {game.phase === 'result' && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, maxWidth: '100%', zIndex: 600,
+          background: game.resultType === 'cut'
+            ? 'linear-gradient(135deg,#dc2626,#7f1d1d)'
+            : 'linear-gradient(135deg,#4338ca,#1e1b4b)',
+          border: `2px solid ${game.resultType === 'cut' ? '#fca5a5' : '#a5b4fc'}`,
+          borderRadius: 10, padding: '6px 14px', color: '#fff', fontWeight: 700,
+          fontSize: 12.5, fontFamily: 'Verdana, sans-serif', lineHeight: 1.3, textAlign: 'left',
+          boxShadow: '0 8px 24px #0007',
+          animation: 'popEmblem 0.4s cubic-bezier(.2,1.4,.5,1) both',
+        }}>
+          <span style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }}>{game.resultType === 'cut' ? '✂️' : '💀'}</span>
+          <span>{game.resultType === 'cut'
+            ? `${names[game.nextLeader]} takes ${game.roundCards.length} cards!`
+            : `${game.roundCards.length} cards go dead`}</span>
+        </div>
+      )}
+
+      {/* Centre table */}
+      <div style={{
+        width: '100%', minHeight: 128,
         background: palette.table, border: `2px solid ${borderColor}`, borderRadius: 12,
         padding: 8, display: 'flex', flexDirection: 'column', alignItems: 'center',
         justifyContent: 'center', gap: 5, transition: 'border 0.3s', overflow: 'hidden',
@@ -99,8 +126,6 @@ export default function Arena({ game, cur, aiStatus, highestCard, names = NAMES,
           <ResultGraphic
             type={game.resultType}
             cards={game.roundCards}
-            takerName={names[game.nextLeader]}
-            count={game.roundCards.length}
             flightDx={flightDx}
             flightDy={flightDy}
           />
@@ -130,23 +155,12 @@ export default function Arena({ game, cur, aiStatus, highestCard, names = NAMES,
           )}
         </div>
 
-        {game.phase === 'result' && (
-          <div style={{
-            background: game.resultType === 'cut' ? '#7f1d1d' : '#1e1b4b',
-            border: `1.5px solid ${game.resultType === 'cut' ? '#ef4444' : '#6366f1'}`,
-            borderRadius: 8, padding: '5px 10px', textAlign: 'center', fontSize: 11,
-            color: game.resultType === 'cut' ? '#fca5a5' : '#a5b4fc', fontWeight: 600,
-            maxWidth: 220, animation: 'pulse 1s ease infinite',
-          }}>
-            {game.resultMsg}
-          </div>
-        )}
-
         {game.phase === 'playing' && (
           <div style={{ fontSize: 11, fontStyle: 'italic', color: cur === 0 ? '#fde68a' : '#86efacaa' }}>
             {cur === 0 ? '⭐ Your turn' : aiStatus ? `🤖 ${aiStatus}` : cur >= 0 ? `${names[cur]}'s turn` : ''}
           </div>
         )}
+      </div>
       </div>
     </div>
   );

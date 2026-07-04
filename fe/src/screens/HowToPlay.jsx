@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PAGE_BG_GREEN } from '../theme';
 import CardFace from '../components/CardFace';
 
 // Standalone "How to Play" reference. Reachable from the login screen and from a
@@ -10,11 +11,11 @@ import CardFace from '../components/CardFace';
 //   onBack — return to the previous screen
 
 const SECTION_TITLE = {
-  fontSize: 13, color: '#86efac', letterSpacing: 1.5, fontWeight: 700,
+  fontSize: 13, color: '#111', letterSpacing: 1.5, fontWeight: 700,
   textTransform: 'uppercase', marginBottom: 8, marginTop: 26,
 };
-const PARA = { fontSize: 14, color: '#dcfce7', lineHeight: 1.7, marginBottom: 10 };
-const HL = { color: '#fde68a', fontWeight: 700 };
+const PARA = { fontSize: 14, color: '#111', lineHeight: 1.7, marginBottom: 10 };
+const HL = { color: '#b45309', fontWeight: 700 };
 
 // All translatable copy, keyed by language. JSX is used directly so inline
 // emphasis (highlights, <strong>) survives translation. Card labels are arrays
@@ -23,7 +24,7 @@ const STR = {
   en: {
     label: 'English',
     header: 'How to Play ♠',
-    intro: <><strong>ACE</strong> is a cutthroat card game. The whole deck is dealt out, and
+    intro: <><strong>ACE the Last Hand</strong> is a cutthroat card game. The whole deck is dealt out, and
       the aim is simple: <span style={HL}>get rid of all your cards</span>. Be the last
       one still holding cards and you <span style={HL}>lose</span>.</>,
     setupTitle: 'Setup',
@@ -65,7 +66,7 @@ const STR = {
   ta: {
     label: 'தமிழ்',
     header: 'எப்படி விளையாடுவது ♠',
-    intro: <><strong>ACE</strong> என்பது ஒரு வெட்டி வீழ்த்தும் சீட்டு விளையாட்டு. முழு சீட்டுக் கட்டும்
+    intro: <><strong>ACE the Last Hand</strong> என்பது ஒரு வெட்டி வீழ்த்தும் சீட்டு விளையாட்டு. முழு சீட்டுக் கட்டும்
       பகிர்ந்தளிக்கப்படும், நோக்கம் எளிது: <span style={HL}>உங்கள் சீட்டுகள் அனைத்தையும் கழித்துவிடுங்கள்</span>.
       சீட்டுகளை வைத்திருக்கும் கடைசி ஆள் நீங்களாக இருந்தால் நீங்கள் <span style={HL}>தோற்கிறீர்கள்</span>.</>,
     setupTitle: 'தயாரிப்பு',
@@ -151,26 +152,26 @@ export default function HowToPlay({ onBack }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 200, overflowY: 'auto',
-      background: 'radial-gradient(ellipse at 50% 0%,#0f4d2a,#061a0f 70%)',
-      fontFamily: 'Georgia,serif', color: '#fff',
+      background: PAGE_BG_GREEN,
+      fontFamily: 'Verdana, sans-serif', color: '#111',
     }}>
       {/* Sticky header: back + title (left), language switcher (right) */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 1,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 16px',
-        background: '#061a0fdd', backdropFilter: 'blur(6px)', borderBottom: '1px solid #16653455',
+        background: '#dcfce7dd', backdropFilter: 'blur(6px)', borderBottom: '1px solid #16a34a33',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={onBack} style={{
-            background: '#0f3d28', border: '1px solid #4ade8066', color: '#4ade80',
+            background: '#ffffff', border: '1px solid #16a34a55', color: '#111',
             borderRadius: 8, width: 36, height: 34, cursor: 'pointer', fontSize: 18,
           }}>←</button>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#4ade80', letterSpacing: 1 }}>{t.header}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#111', letterSpacing: 1 }}>{t.header}</div>
         </div>
         <select value={lang} onChange={e => setLang(e.target.value)} aria-label="Language" style={{
-          background: '#0f3d28', border: '1px solid #4ade8066', color: '#4ade80',
+          background: '#ffffff', border: '1px solid #16a34a55', color: '#111',
           borderRadius: 8, padding: '7px 10px', cursor: 'pointer', fontSize: 13,
-          fontFamily: 'Georgia,serif', outline: 'none',
+          fontFamily: 'Verdana, sans-serif', outline: 'none',
         }}>
           {Object.entries(STR).map(([code, v]) => (
             <option key={code} value={code} style={{ color: '#000' }}>{v.label}</option>
@@ -180,7 +181,7 @@ export default function HowToPlay({ onBack }) {
 
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '8px 18px 48px' }}>
 
-        <div style={{ ...PARA, marginTop: 18, fontSize: 15, color: '#f0fdf4' }}>{t.intro}</div>
+        <div style={{ ...PARA, marginTop: 18, fontSize: 15, color: '#111' }}>{t.intro}</div>
 
         <div style={SECTION_TITLE}>{t.setupTitle}</div>
         <div style={PARA}>{t.setup}</div>
@@ -203,7 +204,7 @@ export default function HowToPlay({ onBack }) {
         <button onClick={onBack} style={{
           width: '100%', marginTop: 24, padding: 14, borderRadius: 12, border: 'none',
           background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff',
-          fontSize: 16, fontWeight: 700, fontFamily: 'Georgia,serif', letterSpacing: 1,
+          fontSize: 16, fontWeight: 700, fontFamily: 'Verdana, sans-serif', letterSpacing: 1,
           cursor: 'pointer', boxShadow: '0 6px 20px #16a34a44',
         }}>{t.gotIt}</button>
       </div>

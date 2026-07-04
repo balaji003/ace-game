@@ -35,8 +35,8 @@ export default function OppChip({ idx, game, cur, aiStatus, names = NAMES, scale
     }}>
       <div style={{
         fontSize: nameFont, fontWeight: 700,
-        color: isActive ? '#fde68a' : isDone ? '#4ade80' : '#cbe6d6',
-        background: isActive ? '#fef3c722' : 'transparent',
+        color: isActive ? '#a16207' : isDone ? '#111' : '#111',
+        background: isActive ? '#fef3c7cc' : 'transparent',
         padding: '1px 6px', borderRadius: 6, whiteSpace: 'nowrap',
         maxWidth: Math.round(84 * scale), overflow: 'hidden', textOverflow: 'ellipsis',
       }}>

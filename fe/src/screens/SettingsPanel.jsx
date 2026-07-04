@@ -16,7 +16,7 @@ export default function SettingsPanel({ username, stats, onClose, onLogout, onDe
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 2000,
-        background: '#021a10cc', backdropFilter: 'blur(3px)',
+        background: '#000000aa', backdropFilter: 'blur(3px)',
         display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
         padding: '40px 16px', overflowY: 'auto',
       }}
@@ -27,7 +27,7 @@ export default function SettingsPanel({ username, stats, onClose, onLogout, onDe
           width: '100%', maxWidth: 420,
           background: 'linear-gradient(160deg,#0f3d28,#08291a)',
           border: '1.5px solid #166534', borderRadius: 16,
-          padding: 22, boxShadow: '0 20px 60px #0008', fontFamily: 'Georgia,serif',
+          padding: 22, boxShadow: '0 20px 60px #0008', fontFamily: 'Verdana, sans-serif',
         }}
       >
         {/* Header */}
@@ -82,7 +82,7 @@ export default function SettingsPanel({ username, stats, onClose, onLogout, onDe
         <button onClick={onOpenHistory} style={{
           width: '100%', padding: 11, borderRadius: 9,
           border: '1.5px solid #16653488', background: '#06281a', color: '#86efac',
-          fontSize: 14, fontFamily: 'Georgia,serif', cursor: 'pointer', marginBottom: 10,
+          fontSize: 14, fontFamily: 'Verdana, sans-serif', cursor: 'pointer', marginBottom: 10,
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
         }}>
           <span>📜</span> Game History
@@ -91,7 +91,7 @@ export default function SettingsPanel({ username, stats, onClose, onLogout, onDe
         <button onClick={onLogout} style={{
           width: '100%', padding: 11, borderRadius: 9,
           border: '1.5px solid #16653488', background: '#06281a', color: '#86efac',
-          fontSize: 14, fontFamily: 'Georgia,serif', fontWeight: 700, cursor: 'pointer', marginBottom: 10,
+          fontSize: 14, fontFamily: 'Verdana, sans-serif', fontWeight: 700, cursor: 'pointer', marginBottom: 10,
         }}>
           Log Out
         </button>
@@ -100,7 +100,7 @@ export default function SettingsPanel({ username, stats, onClose, onLogout, onDe
           <button onClick={() => setConfirmDelete(true)} style={{
             width: '100%', padding: 11, borderRadius: 9,
             border: '1.5px solid #7f1d1d', background: 'transparent', color: '#fca5a5',
-            fontSize: 13, fontFamily: 'Georgia,serif', cursor: 'pointer',
+            fontSize: 13, fontFamily: 'Verdana, sans-serif', cursor: 'pointer',
           }}>
             Delete Account
           </button>
@@ -112,11 +112,11 @@ export default function SettingsPanel({ username, stats, onClose, onLogout, onDe
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setConfirmDelete(false)} style={{
                 flex: 1, padding: 9, borderRadius: 8, border: '1px solid #16653488',
-                background: '#06281a', color: '#86efac', fontFamily: 'Georgia,serif', cursor: 'pointer', fontSize: 13,
+                background: '#06281a', color: '#86efac', fontFamily: 'Verdana, sans-serif', cursor: 'pointer', fontSize: 13,
               }}>Cancel</button>
               <button onClick={onDelete} style={{
                 flex: 1, padding: 9, borderRadius: 8, border: 'none',
-                background: '#dc2626', color: '#fff', fontFamily: 'Georgia,serif', fontWeight: 700, cursor: 'pointer', fontSize: 13,
+                background: '#dc2626', color: '#fff', fontFamily: 'Verdana, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: 13,
               }}>Delete Forever</button>
             </div>
           </div>

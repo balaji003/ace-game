@@ -17,6 +17,7 @@ export function initGame(n = 4) {
     phase: 'playing',       // 'playing' | 'result' | 'gameOver'
     suitVoids: Array.from({ length: n }, () => []),
     roundHistory: [],
+    discard: [],            // cards that went DEAD (permanently out of the game)
     resultMsg: '',
     resultType: '',         // 'dead' | 'cut'
     nextLeader: null,
@@ -140,6 +141,11 @@ export function applyPlay(state, playerIdx, card) {
   }
 
   const newRoundHistory = [...roundHistory, ...newRoundCards];
+  // A DEAD round removes its cards from the game for good; a cut returns them to
+  // the taker's hand. Only dead cards are sound evidence that a suit is gone.
+  const newDiscard = isCut
+    ? (state.discard || [])
+    : [...(state.discard || []), ...newRoundCards.map(rc => rc.card)];
   const active = Array.from({ length: n }, (_, i) => i).filter(i => !rFinished.includes(i));
 
   // Game might be over — still show result first, then transition to gameOver
@@ -155,6 +161,7 @@ export function applyPlay(state, playerIdx, card) {
     log: newLog,
     suitVoids: newSuitVoids,
     roundHistory: newRoundHistory,
+    discard: newDiscard,
     phase: 'result',
     resultMsg,
     resultType,

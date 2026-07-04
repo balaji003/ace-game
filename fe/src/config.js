@@ -25,3 +25,10 @@ export const WS_BASE = (import.meta.env.VITE_WS_URL
   ?? (native ? NATIVE_WS_DEFAULT : `${secure ? 'wss' : 'ws'}://${host}:8080`)) + '/ws';
 
 export const AI_ENABLED = true;
+
+// ── Pacing (milliseconds) ────────────────────────────────────────────────────
+// Tune these to slow down / speed up the game feel. Offline only — online
+// round pacing is driven by the server.
+export const AI_PLAY_MS      = 900;   // a bot's pause before it plays its card
+export const RESULT_PAUSE_MS = 4500;  // how long a DEAD/CUT result stays on screen
+export const RESULT_ANIM_MS  = 2200;  // duration of the cards flying away (dead/cut)

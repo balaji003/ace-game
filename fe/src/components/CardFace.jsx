@@ -27,13 +27,13 @@ export default function CardFace({ card, onClick, glow, dim, tiny, highlight }) 
         userSelect: 'none',
       }}
     >
-      <div style={{ position: 'absolute', top: 2, left: 4, fontSize: tiny ? 10 : 12, fontWeight: 700, lineHeight: 1.2, color: red ? '#dc2626' : '#111', fontFamily: 'Georgia,serif' }}>
+      <div style={{ position: 'absolute', top: 2, left: 4, fontSize: tiny ? 10 : 12, fontWeight: 700, lineHeight: 1.2, color: red ? '#dc2626' : '#111', fontFamily: 'Verdana, sans-serif' }}>
         {card.rank}<br />{card.suit}
       </div>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: tiny ? 20 : 26, color: red ? '#dc2626' : '#111', fontFamily: 'Georgia,serif' }}>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: tiny ? 20 : 26, color: red ? '#dc2626' : '#111', fontFamily: 'Verdana, sans-serif' }}>
         {card.suit}
       </div>
-      <div style={{ position: 'absolute', bottom: 2, right: 4, fontSize: tiny ? 10 : 12, fontWeight: 700, lineHeight: 1.2, color: red ? '#dc2626' : '#111', transform: 'rotate(180deg)', fontFamily: 'Georgia,serif' }}>
+      <div style={{ position: 'absolute', bottom: 2, right: 4, fontSize: tiny ? 10 : 12, fontWeight: 700, lineHeight: 1.2, color: red ? '#dc2626' : '#111', transform: 'rotate(180deg)', fontFamily: 'Verdana, sans-serif' }}>
         {card.rank}<br />{card.suit}
       </div>
     </div>

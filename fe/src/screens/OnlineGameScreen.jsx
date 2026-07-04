@@ -4,8 +4,11 @@ import { highestOf } from '../utils/deck';
 import { socket } from '../services/socket';
 import * as haptics from '../native/haptics';
 import { sounds } from '../native/sound';
+import { PAGE_BG_BLUE } from '../theme';
 import Arena from '../components/Arena';
 import FannedHand from '../components/FannedHand';
+import DealAnimation from '../components/DealAnimation';
+import Logo from '../components/Logo';
 
 // Online board. State is server-authoritative and arrives "you-centric" (the
 // recipient is display seat 0). We rebuild the offline `game` shape so the
@@ -25,6 +28,18 @@ export default function OnlineGameScreen({ start, state, event, prompt, peerIdle
   const isOver = event?.kind === 'game_over' || state?.phase === 'gameOver';
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [count, setCount] = useState(0);
+
+  // Deal animation — play it once, only at a pristine game start (guarding
+  // against a reconnect that lands us mid-game).
+  const [dealing, setDealing] = useState(false);
+  const dealtRef = useRef(false);
+  useEffect(() => {
+    if (dealtRef.current || !state) return;
+    const fresh = state.phase === 'playing'
+      && (state.finished?.length ?? 0) === 0
+      && (state.roundCards?.length ?? 0) === 0;
+    if (fresh) { dealtRef.current = true; setDealing(true); }
+  }, [state]);
 
   // Local countdown mirroring the server grace timer on the prompt popup.
   useEffect(() => { setCount(prompt ? (prompt.secondsLeft || 0) : 0); }, [prompt]);
@@ -89,7 +104,10 @@ export default function OnlineGameScreen({ start, state, event, prompt, peerIdle
   }, [isMyTurn]);
   useEffect(() => {
     const ph = game?.phase || '';
-    if (ph === 'result' && prevPhase.current !== 'result' && game.resultType === 'cut') { haptics.impact(); sounds.cut(); }
+    if (ph === 'result' && prevPhase.current !== 'result') {
+      if (game.resultType === 'cut') { haptics.impact(); sounds.cut(); }
+      else if (game.resultType === 'dead') { haptics.tap(); sounds.dead(); }
+    }
     prevPhase.current = ph;
   }, [game?.phase]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -101,10 +119,15 @@ export default function OnlineGameScreen({ start, state, event, prompt, peerIdle
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'radial-gradient(ellipse at 50% 40%,#0c4a6e,#04293d)',
-      fontFamily: 'Georgia,serif', color: '#fff', padding: 10,
+      background: PAGE_BG_BLUE,
+      fontFamily: 'Verdana, sans-serif', color: '#fff', padding: 10,
       display: 'flex', flexDirection: 'column',
     }}>
+      {/* Start-of-game deal animation */}
+      {dealing && !isOver && (
+        <DealAnimation n={state?.n ?? start?.names?.length ?? 4} theme="blue" onDone={() => setDealing(false)} />
+      )}
+
       {/* Game-over overlay */}
       {isOver && (
         <Overlay>
@@ -163,7 +186,7 @@ export default function OnlineGameScreen({ start, state, event, prompt, peerIdle
           <Btn color="red" outline small onClick={() => setConfirmLeave(true)}>← Leave</Btn>
         </div>
         <div style={{ flex: 1, textAlign: 'center' }}>
-          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: 3, color: '#7dd3fc' }}>♠ ACE</div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}><Logo size={34} fontSize={20} textColor="#7dd3fc" /></div>
           <div style={{
             display: 'inline-block', marginTop: 2, fontSize: 10, padding: '2px 8px', borderRadius: 6,
             background: '#0c4a6e', color: '#7dd3fc', border: '1px solid #0ea5e9',
@@ -275,7 +298,7 @@ function Btn({ children, color = 'blue', outline = false, small = false, onClick
       color: outline ? c.fg === '#fff' ? c.bd : c.fg : '#fff',
       borderRadius: 8,
       padding: small ? '5px 12px' : '10px 22px',
-      cursor: 'pointer', fontSize: small ? 12 : 14, fontWeight: 700, fontFamily: 'Georgia,serif',
+      cursor: 'pointer', fontSize: small ? 12 : 14, fontWeight: 700, fontFamily: 'Verdana, sans-serif',
     }}>{children}</button>
   );
 }

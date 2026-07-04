@@ -2,8 +2,9 @@ import { NAMES } from '../constants';
 
 // Bird's-eye preview of seat positions shown in the Lobby.
 // Props:
-//   total — total number of players including the human
-export default function TablePreview({ total }) {
+//   total    — total number of players including the human
+//   username — logged-in username, shown under the "You" star seat
+export default function TablePreview({ total, username }) {
   const size = 220, cx = size / 2, cy = size / 2;
   const rx = size * 0.40, ry = size * 0.34;
   const opponents = total - 1;
@@ -25,26 +26,50 @@ export default function TablePreview({ total }) {
         left: cx - rx - 6, top: cy - ry - 6,
         width: (rx + 6) * 2, height: (ry + 6) * 2,
         borderRadius: '50%',
-        background: 'radial-gradient(ellipse,#15803d,#0d4a2e)',
-        border: '2px solid #16a34a55', boxShadow: 'inset 0 2px 14px #0006',
+        background: 'radial-gradient(ellipse,#16a34a,#15803d)',
+        border: '2px solid #16a34a', boxShadow: 'inset 0 2px 14px #0006',
       }} />
-      <div style={{ position: 'absolute', left: 0, top: cy - 9, width: size, textAlign: 'center', color: '#4ade8088', fontSize: 13, letterSpacing: 2 }}>
-        ♠ ACE
+      <div style={{ position: 'absolute', left: 0, top: cy - 9, width: size, textAlign: 'center', color: '#dcfce7cc', fontSize: 13, letterSpacing: 2 }}>
+        🂡 ACE
       </div>
 
       {/* Seat tokens */}
       {seats.map((s, i) => (
-        <div key={i} style={{
-          position: 'absolute', left: s.x - 18, top: s.y - 18, width: 36, height: 36,
-          borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: s.me ? 'linear-gradient(135deg,#fbbf24,#f59e0b)' : 'linear-gradient(135deg,#1e3a8a,#1d4ed8)',
-          border: s.me ? '2px solid #fff' : '1.5px solid #60a5fa',
-          color: '#fff', fontSize: 9, fontWeight: 700, textAlign: 'center', lineHeight: 1,
-          boxShadow: '0 2px 8px #0005',
-        }}>
-          {s.me ? '★' : s.label.slice(0, 3)}
+        <div key={i}>
+          <div style={{
+            position: 'absolute', left: s.x - 18, top: s.y - 18, width: 36, height: 36,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'transparent', border: 'none',
+            color: '#111', fontSize: s.me ? 26 : 15, fontWeight: 700, textAlign: 'center', lineHeight: 1,
+            fontFamily: 'Verdana, sans-serif',
+          }}>
+            {s.me ? '♠' : (
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="#002500" aria-hidden="true">
+                <circle cx="12" cy="7" r="4.5" />
+                <path d="M12 13c-4.4 0-8 2.6-8 6.5V21h16v-1.5c0-3.9-3.6-6.5-8-6.5z" />
+              </svg>
+            )}
+          </div>
+          {!s.me && (
+            <div style={{
+              position: 'absolute', left: s.x - 30, width: 60, top: s.y + 20, textAlign: 'center',
+              fontSize: 10, fontWeight: 700, color: '#002500', fontFamily: 'Verdana, sans-serif',
+            }}>
+              {s.label}
+            </div>
+          )}
         </div>
       ))}
+
+      {/* Your name, tucked under the "You" star seat */}
+      {username && (
+        <div style={{
+          position: 'absolute', left: 0, width: size, top: cy + ry + 20, textAlign: 'center',
+          fontSize: 11, fontWeight: 700, color: '#111', fontFamily: 'Verdana, sans-serif',
+        }}>
+          @{username}
+        </div>
+      )}
     </div>
   );
 }

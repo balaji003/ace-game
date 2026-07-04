@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../services/api';
 import { timeAgo } from '../utils/time';
+import { PAGE_BG_GREEN } from '../theme';
 
 const PAGE_SIZE = 20;
 
@@ -54,25 +55,25 @@ export default function HistoryScreen({ onBack }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 1500, overflowY: 'auto',
-      background: 'radial-gradient(ellipse at 50% 30%,#0f3d28,#061a10)',
-      fontFamily: 'Georgia,serif', color: '#fff',
+      background: PAGE_BG_GREEN,
+      fontFamily: 'Verdana, sans-serif', color: '#111',
     }}>
       {/* Header */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 10,
-        background: '#0a2e1cee', backdropFilter: 'blur(6px)',
-        borderBottom: '1px solid #16653466',
+        background: '#dcfce7ee', backdropFilter: 'blur(6px)',
+        borderBottom: '1px solid #16a34a33',
         padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12,
       }}>
         <button
           onClick={onBack}
           style={{
-            background: 'transparent', border: '1px solid #4ade8066', color: '#4ade80',
+            background: '#ffffff', border: '1px solid #16a34a55', color: '#111',
             borderRadius: 8, padding: '5px 12px', cursor: 'pointer',
-            fontSize: 13, fontFamily: 'Georgia,serif',
+            fontSize: 13, fontFamily: 'Verdana, sans-serif',
           }}
         >← Back</button>
-        <span style={{ fontSize: 16, fontWeight: 700, color: '#4ade80', letterSpacing: 1 }}>
+        <span style={{ fontSize: 16, fontWeight: 700, color: '#111', letterSpacing: 1 }}>
           Game History
         </span>
       </div>
@@ -80,7 +81,7 @@ export default function HistoryScreen({ onBack }) {
       {/* List */}
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {items.length === 0 && !loading && (
-          <div style={{ color: '#86efac66', fontSize: 13, textAlign: 'center', marginTop: 60 }}>
+          <div style={{ color: '#16653488', fontSize: 13, textAlign: 'center', marginTop: 60 }}>
             No games played yet.
           </div>
         )}
@@ -116,12 +117,12 @@ export default function HistoryScreen({ onBack }) {
         <div ref={sentinelRef} style={{ height: 1 }} />
 
         {loading && (
-          <div style={{ textAlign: 'center', color: '#4ade8066', fontSize: 12, padding: '12px 0' }}>
+          <div style={{ textAlign: 'center', color: '#00000099', fontSize: 12, padding: '12px 0' }}>
             Loading…
           </div>
         )}
         {!hasMore && items.length > 0 && (
-          <div style={{ textAlign: 'center', color: '#86efac44', fontSize: 11, padding: '12px 0' }}>
+          <div style={{ textAlign: 'center', color: '#16653466', fontSize: 11, padding: '12px 0' }}>
             — All games loaded —
           </div>
         )}

@@ -32,6 +32,5 @@ export const api = {
   recordGame:    body            => req('POST',   '/api/games', body),
   getHistory:    (limit = 50, offset = 0) => req('GET', `/api/games?limit=${limit}&offset=${offset}`),
   deleteAccount: ()              => req('DELETE', '/api/account'),
-  aiMove:        payload         => req('POST',   '/api/ai/move', payload),
   getConfig:     ()              => req('GET',    '/api/config'),
 };

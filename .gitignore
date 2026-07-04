@@ -24,6 +24,9 @@ LOCAL_TEST.*
 test-cases/
 sounds-sample/
 
+# Local dev launcher script
+ace.sh
+
 # OS / editor
 .DS_Store
 *.swp

@@ -9,11 +9,12 @@ const MAX_PER_ROW = 11; // wrap sooner so wide rows aren't squeezed
 //   validSet  — Set of "suit+rank" strings the player may play this turn
 //   isMyTurn  — whether the human player can act now
 //   onPlay    — called with the card object when the player clicks a valid card
+//   suggestKey — "suit+rank" of the card the Practice coach recommends (or null)
 //
 // Fully responsive hand: card size scales to the viewport, cards overlap, and
 // the hand wraps onto as many rows as needed — so it fits any screen width and
 // any card count (1 up to a full 52-card hand) without ever overflowing.
-export default function FannedHand({ cards, validSet, isMyTurn, onPlay }) {
+export default function FannedHand({ cards, validSet, isMyTurn, onPlay, suggestKey = null }) {
   const [hovered, setHovered] = useState(null);
   const wrapRef = useRef(null);
   const [wrapW, setWrapW] = useState(360);
@@ -67,6 +68,7 @@ export default function FannedHand({ cards, validSet, isMyTurn, onPlay }) {
           onPlay={onPlay}
           hovered={hovered}
           setHovered={setHovered}
+          suggestKey={suggestKey}
         />
       ))}
     </div>
@@ -76,7 +78,7 @@ export default function FannedHand({ cards, validSet, isMyTurn, onPlay }) {
 // FanRow lays one row of overlapping cards with a gentle vertical arc (middle
 // cards lifted) and a slight rotation around each card's base — no far pivot,
 // so the row's footprint stays within `avail` and never clips at the edges.
-function FanRow({ rowCards, avail, W, H, validSet, isMyTurn, onPlay, hovered, setHovered }) {
+function FanRow({ rowCards, avail, W, H, validSet, isMyTurn, onPlay, hovered, setHovered, suggestKey }) {
   const n = rowCards.length;
   const topPad = 22;                 // headroom so a hovered/raised card isn't clipped
   const rowH = topPad + H + 8;
@@ -98,13 +100,14 @@ function FanRow({ rowCards, avail, W, H, validSet, isMyTurn, onPlay, hovered, se
           const key = card.suit + card.rank;
           const valid = validSet.has(key);
           const isHov = hovered === key;
+          const isSuggested = suggestKey === key && isMyTurn;
           const red = IS_RED(card.suit);
 
           // -1 (left) … 0 (centre) … 1 (right)
           const t = n > 1 ? (i - (n - 1) / 2) / ((n - 1) / 2) : 0;
           const arc = -arcAmp * (1 - t * t);          // raise the middle
           const tilt = t * maxTilt;                   // subtle fan tilt
-          const lift = isHov ? -20 : (valid && isMyTurn) ? -8 : 0;
+          const lift = isHov ? -20 : isSuggested ? -16 : (valid && isMyTurn) ? -8 : 0;
           const cardTop = topPad + arc + lift;
           const fontMain = Math.round(W * 0.38);
           const fontPip = Math.round(W * 0.2);
@@ -124,26 +127,38 @@ function FanRow({ rowCards, avail, W, H, validSet, isMyTurn, onPlay, hovered, se
                 transformOrigin: `${W / 2}px ${H}px`,
                 transition: 'top 0.15s ease, box-shadow 0.15s',
                 cursor: (valid && isMyTurn) ? 'pointer' : 'default',
-                zIndex: isHov ? 1000 : i,
+                zIndex: isHov ? 1000 : isSuggested ? 900 : i,
                 borderRadius: 7,
                 background: valid && isMyTurn
-                  ? (isHov ? '#fffbeb' : '#fff')
+                  ? (isHov ? '#fffbeb' : isSuggested ? '#eff6ff' : '#fff')
                   : 'linear-gradient(160deg,#fff 72%,#f1f5f9)',
-                border: isHov && valid && isMyTurn
+                border: isSuggested
+                  ? '2.5px solid #2563eb'
+                  : isHov && valid && isMyTurn
                   ? '2.5px solid #f59e0b'
                   : valid && isMyTurn ? '2px solid #fcd34d' : '1px solid #cbd5e1',
-                boxShadow: isHov
+                boxShadow: isSuggested
+                  ? '0 8px 22px #0005, 0 0 20px #3b82f6aa'
+                  : isHov
                   ? '0 10px 26px #0006, 0 0 18px #fbbf2466'
                   : valid && isMyTurn ? '0 4px 12px #0003' : '0 2px 7px #0002',
                 opacity: (isMyTurn && !valid) ? 0.45 : 1,
-                overflow: 'hidden',
+                overflow: 'visible',
               }}
             >
-              <div style={{ position: 'absolute', top: 2, left: 4, fontSize: fontPip, fontWeight: 700, lineHeight: 1.1, color: red ? '#dc2626' : '#111', fontFamily: 'Georgia,serif' }}>
+              {isSuggested && (
+                <div style={{
+                  position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)',
+                  background: '#2563eb', color: '#fff', fontSize: 8.5, fontWeight: 700,
+                  padding: '2px 5px', borderRadius: 5, whiteSpace: 'nowrap', letterSpacing: 0.4,
+                  fontFamily: 'Verdana, sans-serif', boxShadow: '0 2px 6px #0004', zIndex: 2,
+                }}>PLAY 👆</div>
+              )}
+              <div style={{ position: 'absolute', top: 2, left: 4, fontSize: fontPip, fontWeight: 700, lineHeight: 1.1, color: red ? '#dc2626' : '#111', fontFamily: 'Verdana, sans-serif' }}>
                 {card.rank}<br />{card.suit}
               </div>
               {!tight && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: fontMain, color: red ? '#dc2626' : '#111', fontFamily: 'Georgia,serif' }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: fontMain, color: red ? '#dc2626' : '#111', fontFamily: 'Verdana, sans-serif' }}>
                   {card.suit}
                 </div>
               )}

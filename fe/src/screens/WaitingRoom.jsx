@@ -9,6 +9,8 @@
 //   socketStatus — 'connecting' | 'open' | 'reconnecting' | 'idle'
 //   error        — error string, if any
 //   onCancel     — leave the queue and return to the lobby
+import { PAGE_BG_BLUE } from '../theme';
+
 export default function WaitingRoom({ opponents, queueInfo, socketStatus, error, onCancel }) {
   const needed = queueInfo?.needed ?? opponents + 1;
   const joined = queueInfo?.joined ?? 0;
@@ -17,8 +19,8 @@ export default function WaitingRoom({ opponents, queueInfo, socketStatus, error,
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'radial-gradient(ellipse at 50% 30%,#0c4a6e,#04293d 75%)',
-      fontFamily: 'Georgia,serif', color: '#fff', padding: 16,
+      background: PAGE_BG_BLUE,
+      fontFamily: 'Verdana, sans-serif', color: '#fff', padding: 16,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{ maxWidth: 380, width: '100%', textAlign: 'center' }}>
@@ -62,7 +64,7 @@ export default function WaitingRoom({ opponents, queueInfo, socketStatus, error,
 
         <button onClick={onCancel} style={{
           background: 'transparent', border: '1.5px solid #38bdf866', color: '#7dd3fc',
-          borderRadius: 8, padding: '11px 28px', cursor: 'pointer', fontSize: 14, fontFamily: 'Georgia,serif',
+          borderRadius: 8, padding: '11px 28px', cursor: 'pointer', fontSize: 14, fontFamily: 'Verdana, sans-serif',
         }}>Cancel</button>
       </div>
 
