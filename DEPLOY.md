@@ -61,9 +61,25 @@ Full template: [`be/.env.production.example`](be/.env.production.example).
 ## Step-by-step
 
 ### 1. Backend + MySQL on Railway
+
+This repo is a **monorepo** (`be/` + `fe/`), but no restructuring is needed — Railway treats it as an
+[isolated monorepo](https://docs.railway.com/deployments/monorepo): you point the backend service at the
+`be/` subdirectory and it deploys only that. All Railway config lives in the **dashboard** (no `railway.toml`
+in the repo) — the two settings that matter for a monorepo (Root Directory, Watch Paths) are dashboard-only
+anyway, and [`be/Dockerfile`](be/Dockerfile) already pins the build.
+
+Backend service **Settings** to set:
+
+| Setting | Value | Why |
+|---|---|---|
+| **Root Directory** | `be` | Scopes the build to `be/` and makes [`be/Dockerfile`](be/Dockerfile) the detected builder. `be/` is self-contained (its own `go.mod`), so the Docker build context is correct. |
+| **Watch Paths** | `/be/**` | Only pushes touching `be/` trigger a backend redeploy — so `fe/`-only or `DEPLOY.md` commits don't waste a rebuild (the frontend deploys separately on Cloudflare). |
+| **Healthcheck Path** | `/health` | The backend already serves `/health`; Railway waits for it before routing traffic. |
+
+Steps:
 1. Push the repo to GitHub.
-2. **Railway → New Project → Deploy from GitHub repo.** Set the service **root directory** to `be/`
-   (it builds from [`be/Dockerfile`](be/Dockerfile)).
+2. **Railway → New Project → Deploy from GitHub repo.** In the service **Settings**, apply the table above
+   (Root Directory `be`, Watch Paths `/be/**`, Healthcheck Path `/health`).
 3. **+ New → Database → MySQL.** Railway provisions a managed MySQL.
 4. In the backend service **Variables**, set everything from the table above. For `DB_*`, use the MySQL
    plugin's **private** connection vars (Railway exposes them as references).
