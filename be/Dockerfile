@@ -3,7 +3,7 @@
 # so CGO can be disabled.
 
 # --- build stage ---
-FROM golang:1.22-alpine AS build
+FROM golang:1.25-alpine AS build
 WORKDIR /src
 
 # Cache deps first
