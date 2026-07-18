@@ -49,30 +49,6 @@ func (s *Server) handleRecordGame(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, st)
 }
 
-// GET /api/admin/sms-config
-func (s *Server) handleGetSMSConfig(w http.ResponseWriter, r *http.Request) {
-	cfg, err := s.game.GetSMSConfig()
-	if err != nil {
-		writeErr(w, http.StatusInternalServerError, "could not load sms config")
-		return
-	}
-	writeJSON(w, http.StatusOK, cfg)
-}
-
-// PUT /api/admin/sms-config
-func (s *Server) handleSaveSMSConfig(w http.ResponseWriter, r *http.Request) {
-	var cfg model.SMSConfig
-	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
-		writeErr(w, http.StatusBadRequest, "invalid JSON body")
-		return
-	}
-	if err := s.game.SaveSMSConfig(cfg); err != nil {
-		writeErr(w, http.StatusInternalServerError, "could not save sms config")
-		return
-	}
-	writeJSON(w, http.StatusOK, cfg)
-}
-
 func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 	limit := 50
 	if q := r.URL.Query().Get("limit"); q != "" {

@@ -24,6 +24,10 @@ export const API_BASE = import.meta.env.VITE_API_URL
 export const WS_BASE = (import.meta.env.VITE_WS_URL
   ?? (native ? NATIVE_WS_DEFAULT : `${secure ? 'wss' : 'ws'}://${host}:8080`)) + '/ws';
 
+// Google Sign-In: the web OAuth client ID. Used by GIS on web and as the
+// serverClientId for the native plugin, so ID tokens share one audience.
+export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
+
 export const AI_ENABLED = true;
 
 // ── Pacing (milliseconds) ────────────────────────────────────────────────────

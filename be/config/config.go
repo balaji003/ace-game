@@ -19,8 +19,10 @@ type Config struct {
 	AllowOrigin  string
 	AnthropicKey string
 	AIModel      string
-	OTPMaxPerDay       int
-	OTPCooldownSecs    int
+	// Accepted audiences for Google ID tokens. The web OAuth client ID is used
+	// for both web (GIS) and native (Capacitor plugin serverClientId), so the
+	// list is usually a single entry.
+	GoogleClientIDs    []string
 	WatchCountdownSecs int
 	AFKWarnSecs        int
 	AFKGraceSecs       int
@@ -86,16 +88,20 @@ func Load() (*Config, error) {
 	c.JWTSecret = []byte(secret)
 	c.JWTTTL = 30 * 24 * time.Hour
 
+	// Google Sign-In audience(s). Comma-separated to allow extra clients, but
+	// normally just the web OAuth client ID (also used as the native serverClientId).
+	googleIDs := getenv("GOOGLE_CLIENT_ID", "")
+	for _, id := range strings.Split(googleIDs, ",") {
+		if id = strings.TrimSpace(id); id != "" {
+			c.GoogleClientIDs = append(c.GoogleClientIDs, id)
+		}
+	}
+	if len(c.GoogleClientIDs) == 0 {
+		return nil, errors.New("GOOGLE_CLIENT_ID must be set")
+	}
+
 	c.AnthropicKey = getenv("ANTHROPIC_API_KEY", "")
 	c.AIModel = getenv("AI_MODEL", "claude-sonnet-4-20250514")
-	c.OTPMaxPerDay, _ = strconv.Atoi(getenv("OTP_MAX_PER_DAY", "5"))
-	if c.OTPMaxPerDay <= 0 {
-		c.OTPMaxPerDay = 5
-	}
-	c.OTPCooldownSecs, _ = strconv.Atoi(getenv("OTP_COOLDOWN_SECS", "30"))
-	if c.OTPCooldownSecs <= 0 {
-		c.OTPCooldownSecs = 30
-	}
 	c.WatchCountdownSecs, _ = strconv.Atoi(getenv("WATCH_COUNTDOWN_SECS", "10"))
 	if c.WatchCountdownSecs <= 0 {
 		c.WatchCountdownSecs = 10

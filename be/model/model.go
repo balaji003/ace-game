@@ -31,14 +31,6 @@ type PlayedCard struct {
 	Card   string `json:"card"`
 }
 
-type SMSConfig struct {
-	Provider   string `json:"provider"`    // "log" | "fast2sms" | "twilio"
-	APIKey     string `json:"api_key"`
-	AccountSID string `json:"account_sid"`
-	AuthToken  string `json:"auth_token"`
-	From       string `json:"from_number"`
-}
-
 type AIMoveRequest struct {
 	Player       string              `json:"player"`
 	Hand         []string            `json:"hand"`

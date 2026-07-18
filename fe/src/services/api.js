@@ -19,14 +19,10 @@ async function req(method, path, body) {
 }
 
 export const api = {
-  checkUsername:   (username)                 => req('GET',  `/api/auth/check-username?username=${encodeURIComponent(username)}`),
-  sendOTP:         (phone)                    => req('POST', '/api/auth/send-otp',  { phone }),
-  verifyOTP:       (phone, code)              => req('POST', '/api/auth/verify-otp', { phone, code }),
-  signup:          (username, pin, phoneToken) => req('POST', '/api/auth/signup',    { username, pin, phone_token: phoneToken }),
-  login:           (username, pin)             => req('POST', '/api/auth/login',     { username, pin }),
-  logout:          ()                          => req('POST', '/api/auth/logout'),
-  sendRecoverOTP:  (phone)                    => req('POST', '/api/auth/recover-send-otp', { phone }),
-  recoverUsername: (phone, code)              => req('POST', '/api/auth/recover',   { phone, code }),
+  checkUsername:   (username)                => req('GET',  `/api/auth/check-username?username=${encodeURIComponent(username)}`),
+  googleAuth:      (idToken)                 => req('POST', '/api/auth/google',          { id_token: idToken }),
+  googleComplete:  (signupToken, username)   => req('POST', '/api/auth/google/complete', { signup_token: signupToken, username }),
+  logout:          ()                        => req('POST', '/api/auth/logout'),
   getMe:         ()              => req('GET',    '/api/me'),
   getStats:      ()              => req('GET',    '/api/stats'),
   recordGame:    body            => req('POST',   '/api/games', body),

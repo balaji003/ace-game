@@ -1,5 +1,6 @@
 # Secrets / env
 be/.env
+fe/.env
 *.env.local
 .env.local
 

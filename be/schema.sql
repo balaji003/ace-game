@@ -8,43 +8,19 @@ CREATE DATABASE IF NOT EXISTS ace_db
 USE ace_db;
 
 -- ── Users ─────────────────────────────────────────────────────────────────────
+-- Identity comes from Google Sign-In: auth_id holds the Google subject ("sub"),
+-- a stable unique per-user id; username is the chosen in-game display handle.
 CREATE TABLE IF NOT EXISTS users (
   id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   username    VARCHAR(16)     NOT NULL,
-  phone       VARCHAR(20)     NULL,
-  pin_hash    VARCHAR(255)    NOT NULL,
+  email       VARCHAR(255)    NULL,
+  auth_id     VARCHAR(255)    NOT NULL,
   created_at  TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at  TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_users_username (username),
-  UNIQUE KEY uq_users_phone (phone)
-) ENGINE=InnoDB;
-
--- ── SMS provider config (single-row, editable at runtime) ────────────────────
-CREATE TABLE IF NOT EXISTS sms_config (
-  id          TINYINT UNSIGNED NOT NULL DEFAULT 1,
-  provider    VARCHAR(20)      NOT NULL DEFAULT 'log',
-  api_key     VARCHAR(255)     NOT NULL DEFAULT '',
-  account_sid VARCHAR(255)     NOT NULL DEFAULT '',
-  auth_token  VARCHAR(255)     NOT NULL DEFAULT '',
-  from_number VARCHAR(20)      NOT NULL DEFAULT '',
-  updated_at  TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  CONSTRAINT chk_sms_singleton CHECK (id = 1)
-) ENGINE=InnoDB;
-
-INSERT IGNORE INTO sms_config (id) VALUES (1);
-
--- ── OTP requests (phone verification) ────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS otp_requests (
-  id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  phone      VARCHAR(20)     NOT NULL,
-  code       CHAR(6)         NOT NULL,
-  expires_at TIMESTAMP       NOT NULL,
-  used       BOOLEAN         NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  KEY idx_otp_phone (phone, expires_at)
+  UNIQUE KEY uq_users_email (email),
+  UNIQUE KEY uq_users_auth_id (auth_id)
 ) ENGINE=InnoDB;
 
 -- ── Per-user aggregate stats (updated transactionally on each game) ───────────

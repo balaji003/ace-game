@@ -33,7 +33,7 @@ func main() {
 	defer conn.Close()
 
 	st := store.New(conn)
-	authSvc := service.NewAuth(st, cfg, service.NewDBSMSSender(st))
+	authSvc := service.NewAuth(st, cfg, service.NewGoogleVerifier(cfg.GoogleClientIDs))
 	gameSvc := service.NewGame(st)
 	aiSvc := service.NewAI(cfg)
 

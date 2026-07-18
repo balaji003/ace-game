@@ -31,11 +31,3 @@ func (s *GameService) RecordGame(uid int64, req model.RecordGameRequest) (model.
 func (s *GameService) GetHistory(uid int64, limit, offset int) ([]model.Game, error) {
 	return s.store.GetHistory(uid, limit, offset)
 }
-
-func (s *GameService) GetSMSConfig() (model.SMSConfig, error) {
-	return s.store.GetSMSConfig()
-}
-
-func (s *GameService) SaveSMSConfig(cfg model.SMSConfig) error {
-	return s.store.SaveSMSConfig(cfg)
-}

@@ -59,19 +59,12 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /ws", s.handleWS)
 
 	mux.HandleFunc("GET /api/auth/check-username", s.handleCheckUsername)
-	mux.HandleFunc("POST /api/auth/send-otp", s.handleSendOTP)
-	mux.HandleFunc("POST /api/auth/verify-otp", s.handleVerifyOTP)
-	mux.HandleFunc("POST /api/auth/signup", s.handleSignup)
-	mux.HandleFunc("POST /api/auth/login", s.handleLogin)
+	mux.HandleFunc("POST /api/auth/google", s.handleGoogleAuth)
+	mux.HandleFunc("POST /api/auth/google/complete", s.handleGoogleComplete)
 	mux.HandleFunc("POST /api/auth/logout", s.handleLogout)
-	mux.HandleFunc("POST /api/auth/recover-send-otp", s.handleSendRecoverOTP)
-	mux.HandleFunc("POST /api/auth/recover", s.handleRecoverUsername)
 
 	// Public so the web prototype can call it; wrap with authMW + rate-limit before production.
 	mux.HandleFunc("POST /api/ai/move", s.handleAIMove)
-
-	mux.HandleFunc("GET /api/admin/sms-config", s.authMW(s.handleGetSMSConfig))
-	mux.HandleFunc("PUT /api/admin/sms-config", s.authMW(s.handleSaveSMSConfig))
 
 	mux.HandleFunc("GET /api/me", s.authMW(s.handleMe))
 	mux.HandleFunc("GET /api/stats", s.authMW(s.handleStats))

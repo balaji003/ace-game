@@ -29,9 +29,6 @@ export default function TablePreview({ total, username }) {
         background: 'radial-gradient(ellipse,#16a34a,#15803d)',
         border: '2px solid #16a34a', boxShadow: 'inset 0 2px 14px #0006',
       }} />
-      <div style={{ position: 'absolute', left: 0, top: cy - 9, width: size, textAlign: 'center', color: '#dcfce7cc', fontSize: 13, letterSpacing: 2 }}>
-        🂡 ACE
-      </div>
 
       {/* Seat tokens */}
       {seats.map((s, i) => (
