@@ -3,6 +3,10 @@
   "appName": "ACE",
   "webDir": "dist",
   "backgroundColor": "#0a2e1c",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
   "plugins": {
     "SplashScreen": {
       "backgroundColor": "#0a2e1c",

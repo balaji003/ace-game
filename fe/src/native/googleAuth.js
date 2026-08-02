@@ -54,7 +54,7 @@ export async function nativeGoogleSignIn() {
     await SocialLogin.initialize({ google: { webClientId: GOOGLE_CLIENT_ID } });
     nativeInited = true;
   }
-  const res = await SocialLogin.login({ provider: 'google', options: { scopes: ['email', 'profile'] } });
+  const res = await SocialLogin.login({ provider: 'google' });
   const idToken = res?.result?.idToken;
   if (!idToken) throw new Error('No Google credential returned');
   return idToken;

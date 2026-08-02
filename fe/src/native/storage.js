@@ -6,23 +6,19 @@
 // backing store on set/clear.
 
 import { isNative } from './index';
+import { Preferences } from '@capacitor/preferences';
 
 const TOKEN_KEY = 'ace_token';
 let cached = null;
-let prefs = null; // lazily-loaded @capacitor/preferences on native
-
-async function getPrefs() {
-  if (!prefs) ({ Preferences: prefs } = await import('@capacitor/preferences'));
-  return prefs;
-}
 
 // Load the persisted token into memory. Call once before the first authed call.
 export async function hydrateToken() {
   if (isNative()) {
     try {
-      const { value } = await (await getPrefs()).get({ key: TOKEN_KEY });
+      const { value } = await Preferences.get({ key: TOKEN_KEY });
       cached = value || null;
-    } catch {
+    } catch (e) {
+      console.warn('hydrateToken error:', e);
       cached = null;
     }
   } else {
@@ -36,7 +32,7 @@ export function getToken() { return cached; }
 export function setToken(token) {
   cached = token;
   if (isNative()) {
-    getPrefs().then(p => p.set({ key: TOKEN_KEY, value: token })).catch(() => {});
+    Preferences.set({ key: TOKEN_KEY, value: token }).catch(() => {});
   } else {
     try { localStorage.setItem(TOKEN_KEY, token); } catch {}
   }
@@ -45,7 +41,7 @@ export function setToken(token) {
 export function clearToken() {
   cached = null;
   if (isNative()) {
-    getPrefs().then(p => p.remove({ key: TOKEN_KEY })).catch(() => {});
+    Preferences.remove({ key: TOKEN_KEY }).catch(() => {});
   } else {
     try { localStorage.removeItem(TOKEN_KEY); } catch {}
   }

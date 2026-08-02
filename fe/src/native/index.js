@@ -23,6 +23,9 @@ export async function initNativeShell(handlers = {}) {
     const { StatusBar, Style } = await import('@capacitor/status-bar');
     const { App } = await import('@capacitor/app');
 
+    // Keep the WebView below the system status bar (don't draw underneath it),
+    // so the app's top content isn't hidden by the clock/battery icons.
+    await StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
     await StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
     await StatusBar.setBackgroundColor({ color: '#0a2e1c' }).catch(() => {});
     await SplashScreen.hide().catch(() => {});
