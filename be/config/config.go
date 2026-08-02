@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -46,6 +47,27 @@ func (c *Config) OriginAllowed(origin string) bool {
 	return false
 }
 
+// extractPasswordFromMySQLURL extracts the password from a MySQL URL like:
+// mysql://user:password@host:port/database
+func extractPasswordFromMySQLURL(mysqlURL string) string {
+	if mysqlURL == "" {
+		return ""
+	}
+	// Handle URLs with or without mysql:// prefix
+	if !strings.HasPrefix(mysqlURL, "mysql://") {
+		return ""
+	}
+	u, err := url.Parse(mysqlURL)
+	if err != nil {
+		return ""
+	}
+	if u.User == nil {
+		return ""
+	}
+	password, _ := u.User.Password()
+	return password
+}
+
 func Load() (*Config, error) {
 	c := &Config{
 		Env:  getenv("APP_ENV", "dev"),
@@ -78,6 +100,12 @@ func Load() (*Config, error) {
 	host := getenv("DB_HOST", "127.0.0.1")
 	port := getenv("DB_PORT", "3306")
 	name := getenv("DB_NAME", "ace_db")
+
+	// If DB_PASS is empty, try to extract it from DATABASE_URL (MYSQL_URL)
+	if pass == "" {
+		pass = extractPasswordFromMySQLURL(getenv("DATABASE_URL", ""))
+	}
+
 	c.DSN = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&charset=utf8mb4&loc=UTC&time_zone=%%27%%2B00%%3A00%%27",
 		user, pass, host, port, name)
 
@@ -166,3 +194,4 @@ func intEnvClamped(key string, def, lo, hi int) int {
 	}
 	return v
 }
+
