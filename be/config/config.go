@@ -15,11 +15,9 @@ type Config struct {
 	AllowedOrigins []string
 	Port         string
 	DSN          string
-	JWTSecret    []byte
-	JWTTTL       time.Duration
-	AllowOrigin  string
-	AnthropicKey string
-	AIModel      string
+	JWTSecret   []byte
+	JWTTTL      time.Duration
+	AllowOrigin string
 	// Accepted audiences for Google ID tokens. The web OAuth client ID is used
 	// for both web (GIS) and native (Capacitor plugin serverClientId), so the
 	// list is usually a single entry.
@@ -128,8 +126,6 @@ func Load() (*Config, error) {
 		return nil, errors.New("GOOGLE_CLIENT_ID must be set")
 	}
 
-	c.AnthropicKey = getenv("ANTHROPIC_API_KEY", "")
-	c.AIModel = getenv("AI_MODEL", "claude-sonnet-4-20250514")
 	c.WatchCountdownSecs, _ = strconv.Atoi(getenv("WATCH_COUNTDOWN_SECS", "10"))
 	if c.WatchCountdownSecs <= 0 {
 		c.WatchCountdownSecs = 10

@@ -51,8 +51,7 @@ A turn-based game handles thousands of players on one small instance (~10k conne
 | `MAX_TURN_RETRIES` | `3` (no-response "I am here" retries before burn) |
 | `AFK_WARN_SECS` / `AFK_GRACE_SECS` | `20` / `10` |
 | `WATCH_COUNTDOWN_SECS` / `RECENT_GAMES_LIMIT` | `10` / `10` |
-| `OTP_MAX_PER_DAY` / `OTP_COOLDOWN_SECS` | `5` / `30` |
-| `ANTHROPIC_API_KEY` / `AI_MODEL` | optional — Smart AI opponents |
+| `GOOGLE_CLIENT_ID` | web OAuth client ID — **required**, startup fails without it |
 
 Full template: [`be/.env.production.example`](be/.env.production.example).
 

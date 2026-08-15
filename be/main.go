@@ -35,14 +35,13 @@ func main() {
 	st := store.New(conn)
 	authSvc := service.NewAuth(st, cfg, service.NewGoogleVerifier(cfg.GoogleClientIDs))
 	gameSvc := service.NewGame(st)
-	aiSvc := service.NewAI(cfg)
 
-	srv := handler.New(cfg, authSvc, gameSvc, aiSvc)
+	srv := handler.New(cfg, authSvc, gameSvc)
 	mux := http.NewServeMux()
 	srv.RegisterRoutes(mux)
 
 	log.Printf("ACE backend listening on :%s", cfg.Port)
-	if err := http.ListenAndServe(":"+cfg.Port, handler.CORS(cfg, mux)); err != nil {
+	if err := http.ListenAndServe(":"+cfg.Port, handler.RequestLog(handler.CORS(cfg, mux))); err != nil {
 		log.Fatalf("server: %v", err)
 	}
 }

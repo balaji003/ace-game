@@ -181,9 +181,13 @@ export default function App() {
     // Coached practice sessions don't count toward stats — the coach plays for you.
     if (gameOptions.practice) return;
     try {
-      await api.recordGame({ ...result, mode: 'Practice' });
+      await api.recordGame({ ...result, mode: 'Offline' });
       await refreshStats();
-    } catch {}
+    } catch (e) {
+      // Never surfaced to the player mid-game, but a dropped result should not
+      // vanish without a trace — this is the only signal that stats are lossy.
+      console.error('recordGame failed:', e.status ?? '', e.message, result);
+    }
   };
 
   const openSettings = () => { refreshStats(); setShowSettings(true); };

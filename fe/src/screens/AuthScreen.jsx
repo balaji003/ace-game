@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { api, setToken } from '../services/api';
 import { PAGE_BG_GREEN } from '../theme';
 import HowToPlay from './HowToPlay';
+import PrivacyPolicy from './PrivacyPolicy';
 import Logo from '../components/Logo';
 import { isNative, renderGoogleButton, nativeGoogleSignIn } from '../native/googleAuth';
+import { recordConsent } from '../utils/consent';
 
 function AceCard({ style }) {
   return (
@@ -47,6 +49,12 @@ export default function AuthScreen({ onLogin }) {
   const [intro, setIntro] = useState(true); // true = show card zoom-out intro
   const [showHowTo, setShowHowTo] = useState(false);
 
+  // Privacy consent gate. Deliberately starts false on every visit rather than
+  // restoring a stored acceptance — the user agrees at the moment they sign in.
+  // Sign-in only happens once per install, so this is not a recurring prompt.
+  const [accepted, setAccepted]     = useState(false);
+  const [showPolicy, setShowPolicy] = useState(false);
+
   const googleBtnRef = useRef(null);
 
   useEffect(() => {
@@ -64,6 +72,7 @@ export default function AuthScreen({ onLogin }) {
         setStep('username');
       } else {
         setToken(data.token);
+        recordConsent();
         onLogin(data.username);
       }
     } catch (e) {
@@ -74,12 +83,15 @@ export default function AuthScreen({ onLogin }) {
   };
 
   // Web: render Google's official button. Native: a plain button (below).
+  // Google's own button cannot be intercepted once rendered, so on web it is not
+  // mounted at all until the policy is accepted — the tick is what creates it.
   useEffect(() => {
-    if (intro || showHowTo || step !== 'signin' || isNative() || !googleBtnRef.current) return;
+    if (intro || showHowTo || showPolicy || step !== 'signin' || !accepted || isNative() || !googleBtnRef.current) return;
     renderGoogleButton(googleBtnRef.current, handleCredential, e => setErr(e.message || 'Could not load Google sign-in'));
-  }, [intro, showHowTo, step]);
+  }, [intro, showHowTo, showPolicy, step, accepted]);
 
   const handleNativeSignIn = async () => {
+    if (!accepted) return setErr('Please accept the Privacy Policy to continue');
     setErr(''); setBusy(true);
     try {
       const idToken = await nativeGoogleSignIn();
@@ -104,6 +116,7 @@ export default function AuthScreen({ onLogin }) {
 
       const data = await api.googleComplete(signupToken, u);
       setToken(data.token);
+      recordConsent();
       onLogin(data.username);
     } catch (e) {
       if (e.conflict === 'username') setErr(`@${u} is already taken`);
@@ -162,7 +175,8 @@ export default function AuthScreen({ onLogin }) {
     );
   }
 
-  if (showHowTo) return <HowToPlay onBack={() => setShowHowTo(false)} />;
+  if (showHowTo)  return <HowToPlay onBack={() => setShowHowTo(false)} />;
+  if (showPolicy) return <PrivacyPolicy onBack={() => setShowPolicy(false)} />;
 
   return (
     <div style={{
@@ -197,13 +211,36 @@ export default function AuthScreen({ onLogin }) {
                 Sign in with Google to play, save your stats, and pick up on any device.
               </div>
 
+              {/* ── Privacy consent gate ─────────────────────────────────── */}
+              <label style={{
+                display: 'flex', alignItems: 'flex-start', gap: 9, textAlign: 'left',
+                cursor: 'pointer', marginBottom: 16,
+              }}>
+                <input type="checkbox" checked={accepted}
+                  onChange={e => { setAccepted(e.target.checked); setErr(''); }}
+                  style={{ width: 17, height: 17, marginTop: 1, accentColor: '#16a34a', flexShrink: 0, cursor: 'pointer' }} />
+                <span style={{ fontSize: 12, color: '#dcfce7', lineHeight: 1.55 }}>
+                  I have read and agree to the{' '}
+                  <span role="button" tabIndex={0}
+                    onClick={e => { e.preventDefault(); setShowPolicy(true); }}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowPolicy(true); } }}
+                    style={{ color: '#86efac', textDecoration: 'underline', fontWeight: 700 }}>
+                    Privacy Policy
+                  </span>.
+                </span>
+              </label>
+
               {isNative() ? (
-                primaryBtn('Continue with Google', handleNativeSignIn)
+                primaryBtn('Continue with Google', handleNativeSignIn, !accepted)
               ) : (
                 <div style={{ display: 'flex', justifyContent: 'center', minHeight: 44 }}>
                   {busy
                     ? <span style={{ color: '#86efac', fontSize: 13 }}>Signing in…</span>
-                    : <div ref={googleBtnRef} />}
+                    : accepted
+                      ? <div ref={googleBtnRef} />
+                      : <span style={{ color: '#86efac66', fontSize: 12, alignSelf: 'center' }}>
+                          Accept the Privacy Policy to sign in
+                        </span>}
                 </div>
               )}
 

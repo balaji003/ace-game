@@ -26,19 +26,3 @@ type RecordGameRequest struct {
 	Opponents []string `json:"opponents"`
 }
 
-type PlayedCard struct {
-	Player string `json:"player"`
-	Card   string `json:"card"`
-}
-
-type AIMoveRequest struct {
-	Player       string              `json:"player"`
-	Hand         []string            `json:"hand"`
-	LedSuit      string              `json:"ledSuit"`
-	ValidMoves   []string            `json:"validMoves"`
-	RoundCards   []PlayedCard        `json:"roundCards"`
-	PlayersAfter []string            `json:"playersAfter"`
-	Voids        map[string][]string `json:"voids"`
-	Counts       map[string]int      `json:"counts"`
-	Recent       []string            `json:"recent"`
-}

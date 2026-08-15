@@ -82,21 +82,38 @@ export default function GameScreen({ username, nPlayers, useAI, practice = false
   }, [game.phase, game.loser]);
   useEffect(() => { if (afkPhase === 'popup') haptics.notify(false); }, [afkPhase]);
 
+  // Report as soon as the result is settled for the local player rather than at
+  // gameOver — the watch prompt auto-exits to the lobby ~10s after you finish,
+  // unmounting this screen long before the rest of the table plays out, which
+  // silently dropped every win that wasn't watched to the end.
+  //
+  // A finish only becomes durable once the round it happened in is resolved: a
+  // CUT hands the round's cards to the taker and pulls them back out of
+  // `finished` (engine.js resolveRound). Once resolved and still finished, the
+  // player holds no cards, can never be a taker again, and so cannot be the
+  // loser — the win is finalised. Losses are only known at gameOver, which is
+  // safe because the loser is by definition still on screen holding cards.
+  // reportedRef is reset by startNewGame(), so this fires once per game.
   useEffect(() => {
-    if (game.phase === 'gameOver' && !reportedRef.current) {
+    if (reportedRef.current) return;
+    const settled = game.phase === 'result' || game.phase === 'gameOver';
+    const finishedIdx = game.finished.indexOf(0);
+    if (settled && finishedIdx >= 0) {
       reportedRef.current = true;
-      const won = game.loser !== 0;
-      const placement = game.finished.indexOf(0);
       onGameEnd?.({
-        won,
-        placement: placement >= 0 ? placement + 1 : game.n,
+        won: true,
+        placement: finishedIdx + 1,
+        opponents: NAMES.slice(1, game.n),
+      });
+    } else if (game.phase === 'gameOver') {
+      reportedRef.current = true;
+      onGameEnd?.({
+        won: game.loser !== 0,
+        placement: game.n,
         opponents: NAMES.slice(1, game.n),
       });
     }
-    if (game.phase !== 'gameOver') {
-      reportedRef.current = false;
-    }
-  }, [game.phase]);
+  }, [game.finished, game.phase]);
 
   // Show watch prompt the moment player 0 plays their last card (enters finished list)
   useEffect(() => {

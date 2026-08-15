@@ -8,7 +8,7 @@ Everything is in `main.go` (one `package main`). Module is `example.com`.
 mysql -u root -p < schema.sql
 
 # 2. config
-cp .env.example .env            # set DB_PASS, JWT_SECRET, ANTHROPIC_API_KEY
+cp .env.example .env            # set DB_PASS, JWT_SECRET, GOOGLE_CLIENT_ID
 export $(grep -v '^#' .env | xargs)
 
 # 3. deps + run
@@ -29,10 +29,6 @@ Server listens on `:8080`.
 | DELETE | `/api/account` | yes | — |
 | POST | `/api/games` | yes | `{won, placement, mode, opponents[]}` |
 | GET | `/api/games?limit=50` | yes | — |
-| POST | `/api/ai/move` | no* | game state → `{index, card, usedAI}` |
-
-\* `/api/ai/move` is public so the web prototype can call it. Wrap it with
-`s.authMW(...)` and add rate limiting before production (it spends Anthropic quota).
 
 Protected routes need `Authorization: Bearer <token>` from signup/login.
 
@@ -49,5 +45,6 @@ curl -s localhost:8080/api/games \
 ```
 
 ## Frontend
-Set `API_BASE = "http://localhost:8080"` at the top of `ace-game.jsx`. With **Smart AI**
-selected, opponent turns call `POST /api/ai/move`.
+Point the frontend at this server with `VITE_API_URL` / `VITE_WS_URL` in `fe/.env`.
+Single-player opponents run entirely in the browser (`fe/src/game/ai.js`) — the
+backend is only involved in auth, stats, history, and online multiplayer.

@@ -23,7 +23,9 @@ CREATE TABLE IF NOT EXISTS users (
   UNIQUE KEY uq_users_auth_id (auth_id)
 ) ENGINE=InnoDB;
 
--- ── Per-user aggregate stats (updated transactionally on each game) ───────────
+-- ── Per-user aggregate stats ─────────────────────────────────────────────────
+-- Rows are upserted by RecordGame in the same transaction as the games INSERT;
+-- a user with no completed games has no row here (stats read back as zeroes).
 CREATE TABLE IF NOT EXISTS user_stats (
   user_id        BIGINT UNSIGNED NOT NULL,
   played         INT NOT NULL DEFAULT 0,

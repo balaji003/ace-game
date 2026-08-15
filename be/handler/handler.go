@@ -1,11 +1,15 @@
 package handler
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
+	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	"example.com/config"
 	"example.com/realtime"
@@ -23,11 +27,10 @@ type Server struct {
 	cfg  *config.Config
 	auth *service.AuthService
 	game *service.GameService
-	ai   *service.AIService
 	hub  *realtime.Hub
 }
 
-func New(cfg *config.Config, auth *service.AuthService, game *service.GameService, ai *service.AIService) *Server {
+func New(cfg *config.Config, auth *service.AuthService, game *service.GameService) *Server {
 	hub := realtime.NewHub(realtime.HubConfig{
 		WarnSecs:   cfg.AFKWarnSecs,
 		GraceSecs:  cfg.AFKGraceSecs,
@@ -35,7 +38,7 @@ func New(cfg *config.Config, auth *service.AuthService, game *service.GameServic
 		MinPlayers: cfg.MinPlayers,
 		MaxPlayers: cfg.MaxPlayers,
 	}, game)
-	return &Server{cfg: cfg, auth: auth, game: game, ai: ai, hub: hub}
+	return &Server{cfg: cfg, auth: auth, game: game, hub: hub}
 }
 
 func (s *Server) RegisterRoutes(mux *http.ServeMux) {
@@ -63,9 +66,6 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/auth/google/complete", s.handleGoogleComplete)
 	mux.HandleFunc("POST /api/auth/logout", s.handleLogout)
 
-	// Public so the web prototype can call it; wrap with authMW + rate-limit before production.
-	mux.HandleFunc("POST /api/ai/move", s.handleAIMove)
-
 	mux.HandleFunc("GET /api/me", s.authMW(s.handleMe))
 	mux.HandleFunc("GET /api/stats", s.authMW(s.handleStats))
 	mux.HandleFunc("DELETE /api/account", s.authMW(s.handleDeleteAccount))
@@ -76,6 +76,39 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 // CORS echoes back the request's Origin when it's in the configured allow-list
 // (a single header can't carry a list), so the web domain and the native
 // WebView origin (capacitor://localhost) can both be permitted.
+// statusRecorder captures the response code so RequestLog can report it.
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+// Hijack forwards to the underlying writer so the /ws upgrade still works —
+// gorilla/websocket type-asserts http.Hijacker, which a plain wrapper hides.
+func (r *statusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := r.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("response writer does not support hijacking")
+	}
+	return h.Hijack()
+}
+
+// RequestLog logs one line per HTTP request. Without it a request that never
+// arrives is indistinguishable from one that arrived and failed — which is
+// exactly the ambiguity that hid a dropped game result.
+func RequestLog(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r)
+		log.Printf("[http] %s %s %d %s", r.Method, r.URL.Path, rec.status, time.Since(start).Round(time.Millisecond))
+	})
+}
+
 func CORS(cfg *config.Config, next http.Handler) http.Handler {
 	wildcard := cfg.OriginAllowed("*")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -26,23 +26,15 @@ func New(db *sql.DB) Store {
 	return &mysqlStore{db: db}
 }
 
+// CreateUser registers the account. No user_stats row is seeded here — RecordGame
+// upserts one on the first completed game, so a player who never finishes a game
+// simply has no stats row (GetStats reports zeroes for them either way).
 func (s *mysqlStore) CreateUser(username, email, authID string) (int64, error) {
-	tx, err := s.db.Begin()
+	res, err := s.db.Exec(`INSERT INTO users (username, email, auth_id) VALUES (?, ?, ?)`, username, email, authID)
 	if err != nil {
 		return 0, err
 	}
-	defer tx.Rollback() //nolint:errcheck
-
-	res, err := tx.Exec(`INSERT INTO users (username, email, auth_id) VALUES (?, ?, ?)`, username, email, authID)
-	if err != nil {
-		return 0, err
-	}
-	uid, _ := res.LastInsertId()
-
-	if _, err := tx.Exec(`INSERT INTO user_stats (user_id) VALUES (?)`, uid); err != nil {
-		return 0, err
-	}
-	return uid, tx.Commit()
+	return res.LastInsertId()
 }
 
 // GetUserByAuthID looks up an account by its Google subject identifier.
@@ -89,17 +81,22 @@ func (s *mysqlStore) RecordGame(uid int64, req model.RecordGameRequest) (model.S
 		return model.Stats{}, err
 	}
 
+	// Upsert so the first game creates the row. MySQL evaluates SET assignments
+	// left to right against already-updated values, so best_streak must be
+	// computed BEFORE current_streak is incremented or it lands one too high.
 	var statsSQL string
 	if req.Won {
-		statsSQL = `UPDATE user_stats
-			SET played = played + 1, wins = wins + 1,
-			    current_streak = current_streak + 1,
-			    best_streak = GREATEST(best_streak, current_streak + 1)
-			WHERE user_id = ?`
+		statsSQL = `INSERT INTO user_stats (user_id, played, wins, losses, current_streak, best_streak)
+			VALUES (?, 1, 1, 0, 1, 1)
+			ON DUPLICATE KEY UPDATE
+			    played = played + 1, wins = wins + 1,
+			    best_streak = GREATEST(best_streak, current_streak + 1),
+			    current_streak = current_streak + 1`
 	} else {
-		statsSQL = `UPDATE user_stats
-			SET played = played + 1, losses = losses + 1, current_streak = 0
-			WHERE user_id = ?`
+		statsSQL = `INSERT INTO user_stats (user_id, played, wins, losses, current_streak, best_streak)
+			VALUES (?, 1, 0, 1, 0, 0)
+			ON DUPLICATE KEY UPDATE
+			    played = played + 1, losses = losses + 1, current_streak = 0`
 	}
 	if _, err := tx.Exec(statsSQL, uid); err != nil {
 		return model.Stats{}, err
