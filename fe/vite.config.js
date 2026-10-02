@@ -6,5 +6,12 @@ export default defineConfig({
   // host:true exposes the dev server on the LAN (http://<your-ip>:5173) so
   // phones/laptops on the same WiFi can join online games during testing.
   // Ignore the native project so the copied web bundle doesn't trigger reloads.
-  server: { host: true, watch: { ignored: ['**/android/**', '**/ios/**'] } },
+  // fs.allow: the privacy policy is raw-imported from ../be/web/ (one source of
+  // truth shared with the Go backend), which is outside this project root — the
+  // dev server refuses to read such paths unless they are allowed explicitly.
+  server: {
+    host: true,
+    watch: { ignored: ['**/android/**', '**/ios/**'] },
+    fs: { allow: ['..'] },
+  },
 });

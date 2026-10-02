@@ -14,6 +14,7 @@ import (
 	"example.com/config"
 	"example.com/realtime"
 	"example.com/service"
+	"example.com/web"
 )
 
 type ctxKey string
@@ -58,6 +59,10 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 		})
 	})
 
+	// Public privacy policy. Play requires a URL readable without installing
+	// the app; this serves the same document the in-app screen renders.
+	mux.HandleFunc("GET /privacy", web.Privacy)
+
 	// WebSocket endpoint for online multiplayer (auth via ?token=).
 	mux.HandleFunc("GET /ws", s.handleWS)
 
@@ -73,9 +78,6 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/games", s.authMW(s.handleHistory))
 }
 
-// CORS echoes back the request's Origin when it's in the configured allow-list
-// (a single header can't carry a list), so the web domain and the native
-// WebView origin (capacitor://localhost) can both be permitted.
 // statusRecorder captures the response code so RequestLog can report it.
 type statusRecorder struct {
 	http.ResponseWriter
@@ -109,6 +111,10 @@ func RequestLog(next http.Handler) http.Handler {
 	})
 }
 
+// CORS echoes back the request's Origin when it's in the configured allow-list
+// (a single header can't carry a list), so the web domain and the native
+// WebView origin (https://localhost on Android, capacitor://localhost on iOS)
+// can both be permitted.
 func CORS(cfg *config.Config, next http.Handler) http.Handler {
 	wildcard := cfg.OriginAllowed("*")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

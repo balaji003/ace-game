@@ -1,0 +1,97 @@
+<!--
+  CANONICAL privacy policy text. Single source of truth for BOTH:
+    - the in-app screen  (fe/src/screens/PrivacyPolicy.jsx raw-imports this file,
+      so it is inlined into the bundle at build time and works offline)
+    - the public web page (be/web serves it at GET /privacy via go:embed)
+
+  Editing this file changes both. There is no second copy to keep in step.
+
+  On any material change, bump the version in .ace-policy-version below —
+  fe/src/utils/consent.js parses that span, so an old acceptance never silently
+  covers new terms.
+
+  TODO (BLOCKS PLAY RELEASE): replace privacy@example.com (appears twice) with a
+  real, monitored address. Play rejects a listing whose policy names an
+  unreachable mailbox for deletion and data-access requests.
+-->
+<div class="ace-policy">
+
+  <h1>Privacy Policy</h1>
+  <p class="sub">ACE — THE LAST HAND · Version <span class="ace-policy-version">2026-08-15</span></p>
+
+  <h2>The short version</h2>
+  <p>
+    ACE stores the minimum needed to give you an account and keep your game record.
+    We <span class="hl">do not sell your data</span>, we do not run advertising, and we
+    do not track you across other apps or websites.
+  </p>
+
+  <h2>What we collect</h2>
+  <ul>
+    <li>
+      <strong>Your Google account.</strong> When you sign in with Google we receive your
+      <span class="hl">email address</span> and your <span class="hl">Google account ID</span>,
+      and we store both. We never receive or store your Google password.
+    </li>
+    <li><strong>Your username.</strong> The handle you choose. Other players see this at the table.</li>
+    <li>
+      <strong>Your game record.</strong> For each finished game: the date, whether you won,
+      your finishing position, the game mode, and the display names of your opponents.
+    </li>
+    <li><strong>Your stats.</strong> Running totals of games played, wins, losses, and streaks.</li>
+    <li>
+      <strong>A session token</strong> stored on your own device so you stay signed in. It
+      never leaves your device except to authenticate you to our server.
+    </li>
+  </ul>
+  <p>We do not collect your contacts, location, photos, or any advertising identifier.</p>
+
+  <h2>Why we collect it</h2>
+  <p>
+    To identify your account across devices, show you at the table to other players, keep
+    your stats and history, and match you into online games. That is all.
+  </p>
+
+  <h2>Who else sees it</h2>
+  <ul>
+    <li><strong>Google</strong> — handles sign-in and confirms your identity to us.</li>
+    <li><strong>Our hosting provider</strong> — runs the servers and database that store the above.</li>
+  </ul>
+  <p>
+    Nobody else. We do not share or sell your data to advertisers, brokers, or analytics firms,
+    and we do not send your game data to any third-party service. Computer opponents in
+    single-player games run <span class="hl">entirely on your own device</span> — those games
+    send nothing to our servers while you play.
+  </p>
+
+  <h2>Deleting your data</h2>
+  <p>
+    You can delete your account from inside the app at any time. Deleting it removes your
+    account, your stats, and your entire game history from our database
+    <span class="hl">permanently</span> — this cannot be undone, and we keep no copy
+    afterwards. You may also email us at
+    <a href="mailto:privacy@example.com">privacy@example.com</a> to request deletion.
+  </p>
+
+  <h2>How long we keep it</h2>
+  <p>For as long as your account exists. Once you delete your account, it is gone.</p>
+
+  <h2>Children</h2>
+  <p>
+    ACE is not directed at children under 13, and we do not knowingly collect their data.
+    If you believe a child has created an account, contact us and we will remove it.
+  </p>
+
+  <h2>Changes to this policy</h2>
+  <p>
+    If we change this policy in a way that matters, we will ask you to accept the new
+    version the next time you sign in. The version is shown at the top of this page.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Questions about your data, or want a copy of it? Email
+    <a href="mailto:privacy@example.com">privacy@example.com</a>.
+  </p>
+
+</div>

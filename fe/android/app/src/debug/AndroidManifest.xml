@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug-only manifest overlay.
+
+  Release builds block cleartext (plain HTTP) traffic app-wide: capacitor.config.json
+  sets androidScheme=https and declares no `cleartext`, so the attribute is absent
+  from the release manifest and Android's default (deny) applies.
+
+  Local testing sometimes needs to point a native build at a LAN dev server over
+  plain HTTP, e.g.:
+      VITE_API_URL=http://192.168.1.5:8080 ./build-android.sh
+  This overlay re-enables cleartext for the debug variant ONLY. It is never merged
+  into a release build, so the shipped app keeps the stricter posture Play expects.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:usesCleartextTraffic="true"
+        tools:replace="android:usesCleartextTraffic" />
+
+</manifest>

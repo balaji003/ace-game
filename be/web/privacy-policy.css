@@ -1,0 +1,82 @@
+/*
+  Shared styling for the canonical policy fragment (privacy-policy.html).
+  Used by BOTH the Go-served public page and the in-app React screen, so the
+  two look the same. Everything is scoped under .ace-policy-page / .ace-policy
+  so it cannot leak into the rest of the app's styles.
+
+  The background reproduces PAGE_BG_GREEN from fe/src/theme.js.
+*/
+
+.ace-policy-page {
+  min-height: 100vh;
+  padding: 20px 18px 48px;
+  font-family: Verdana, sans-serif;
+  background:
+    radial-gradient(#15803d12 1.4px, transparent 1.6px) 0 0 / 26px 26px,
+    radial-gradient(circle at 16% 12%, #ffffffaa, transparent 40%),
+    radial-gradient(circle at 86% 6%, #bbf7d0, transparent 44%),
+    radial-gradient(ellipse at 50% 120%, #4ade8055, transparent 62%),
+    radial-gradient(ellipse at 50% 30%, #c9f7d6, #dcfce7 80%);
+}
+
+.ace-policy {
+  max-width: 640px;
+  margin: 0 auto;
+  color: #111;
+}
+
+.ace-policy h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  margin: 10px 0 0;
+}
+
+.ace-policy .sub {
+  font-size: 12px;
+  color: #000000aa;
+  letter-spacing: 1px;
+  margin: 4px 0 0;
+}
+
+.ace-policy h2 {
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin: 26px 0 8px;
+}
+
+.ace-policy p {
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 0 0 10px;
+}
+
+.ace-policy ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px;
+}
+
+.ace-policy li {
+  font-size: 14px;
+  line-height: 1.7;
+  margin-bottom: 6px;
+}
+
+/* Matches the "· " bullet the original inline-styled screen used. */
+.ace-policy li::before {
+  content: "· ";
+  font-weight: 700;
+}
+
+.ace-policy .hl {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.ace-policy a {
+  color: #b45309;
+  font-weight: 700;
+}

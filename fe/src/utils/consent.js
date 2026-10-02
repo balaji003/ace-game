@@ -1,7 +1,6 @@
 // Privacy-policy consent tracking.
 //
-// POLICY_VERSION is bumped whenever the policy text changes materially. The
-// stored record carries the version it was accepted against, so an old
+// The stored record carries the version it was accepted against, so an old
 // acceptance never silently covers new terms — and support can answer "which
 // version did this device agree to".
 //
@@ -9,7 +8,15 @@
 // restoring this record. Sign-in happens once per install (the session token
 // persists), so that is a one-time prompt in practice, not a recurring nag.
 
-export const POLICY_VERSION = '2026-08-15';
+import policyHtml from '../../../be/web/privacy-policy.html?raw';
+
+// The version is declared once, inside the policy markup itself, so editing the
+// policy and bumping its version are the same edit and cannot fall out of step.
+// If the span ever goes missing the fallback matches no stored record, so every
+// device is asked to accept again — the safe direction to fail in.
+// be/web/web_test.go asserts the span exists exactly once.
+export const POLICY_VERSION =
+  /class="ace-policy-version">([^<]+)</.exec(policyHtml)?.[1]?.trim() ?? 'unparsed';
 
 const KEY = 'ace.privacy.consent';
 

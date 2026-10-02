@@ -43,7 +43,7 @@ A turn-based game handles thousands of players on one small instance (~10k conne
 | Var | Value |
 |-----|-------|
 | `APP_ENV` | `prod` |
-| `ALLOW_ORIGIN` | **comma-list** of allowed origins: web domain **+ the native WebView origin**, e.g. `https://ace.pages.dev,capacitor://localhost` (wildcard `*` is refused in prod) |
+| `ALLOW_ORIGIN` | **comma-list** of allowed origins: web domain **+ the native WebView origin**, e.g. `https://ace.pages.dev,https://localhost` (wildcard `*` is refused in prod). Android's WebView origin is `https://localhost` (set by `androidScheme` in `fe/capacitor.config.json`); `capacitor://localhost` is the **iOS** value — add it too when iOS ships. |
 | `PORT` | `8080` (or the port Railway injects) |
 | `JWT_SECRET` | long random string — `openssl rand -base64 48` |
 | `DB_USER` / `DB_PASS` / `DB_HOST` / `DB_PORT` / `DB_NAME` | from the Railway MySQL plugin (use its private host) |
@@ -97,7 +97,7 @@ Steps:
    VITE_WS_URL  = wss://ace-be.up.railway.app
    ```
 4. Deploy → note the web URL, e.g. `https://ace.pages.dev`.
-5. Back on Railway, set `ALLOW_ORIGIN = https://ace.pages.dev,capacitor://localhost` and redeploy.
+5. Back on Railway, set `ALLOW_ORIGIN = https://ace.pages.dev,https://localhost` and redeploy.
 6. Open the web URL on two devices, log in as two users, **Play Online** → match → play.
 
 ### 3. Android app (Google Play)
@@ -110,10 +110,62 @@ backend URL baked in at build time.
    VITE_WS_URL=wss://ace-be.up.railway.app npm run build:native
    ```
    (or set `NATIVE_API_DEFAULT`/`NATIVE_WS_DEFAULT` in [`fe/src/config.js`](fe/src/config.js)).
-2. Open `fe/android/` in **Android Studio** → set app id/version → **Build → Generate Signed Bundle (AAB)**.
-3. Upload the AAB to the **Play Console**.
-4. Ensure `ALLOW_ORIGIN` on the backend includes **`capacitor://localhost`** (the WebView's origin) — else
-   the app can't connect.
+2. Build the signed release bundle. The script runs the web build, the webDir patch and the
+   Google client-ID check, then refuses to finish if the result is unsigned:
+   ```bash
+   cd fe && ./build-android.sh release
+   # → fe/android/app/build/outputs/bundle/release/app-release.aab
+   ```
+3. Bump `versionCode` in [`fe/android/app/build.gradle`](fe/android/app/build.gradle) for **every**
+   upload — Play rejects a reused value.
+4. Upload the AAB to the **Play Console**.
+5. Ensure `ALLOW_ORIGIN` on the backend includes **`https://localhost`** (the Android WebView's origin) — else
+   every API call fails CORS while the app otherwise looks fine.
+
+#### Signing
+Credentials live in `fe/android/keystore.properties`, which points at the upload keystore. Both are
+gitignored and **must be backed up off this machine** — losing them means the app can never be updated
+under the same Play listing.
+
+| What | Where |
+|---|---|
+| Upload keystore | `~/ace-upload-key.jks` (outside the repo) |
+| Credentials | `fe/android/keystore.properties` |
+| Key alias | `ace-upload` (RSA 2048, valid to Feb 2054) |
+
+Print the upload key's SHA-1 at any time:
+```bash
+keytool -list -v -keystore ~/ace-upload-key.jks -alias ace-upload \
+  | grep SHA1:   # password is in fe/android/keystore.properties
+```
+
+#### Privacy policy URL (required by Play)
+Play needs a policy readable on the open web, without installing the app. The Go backend serves one
+at **`https://ace-be.up.railway.app/privacy`** — use that as the listing's privacy policy URL.
+
+There is only ever one copy of the text. [`be/web/privacy-policy.html`](be/web/privacy-policy.html)
+and its stylesheet are embedded into the Go binary (`go:embed`) **and** raw-imported by the in-app
+screen at build time, so the public page and the in-app page are the same document and cannot drift.
+The policy version lives in that markup too, and `fe/src/utils/consent.js` parses it from there —
+editing the policy and bumping its version are a single edit.
+
+Because the text is inlined into the JS bundle, the in-app policy also works **offline**, which
+matters: consent is required before sign-in, when no session yet exists.
+
+> **Before submitting the listing:** replace `privacy@example.com` in
+> [`be/web/privacy-policy.html`](be/web/privacy-policy.html) with a real, monitored address. It is
+> named as the contact for deletion and data-access requests.
+
+#### Google Sign-In fingerprints — do not skip
+Google Identity matches the app by **package name + signing-certificate SHA-1**. Play App Signing
+strips the upload signature and re-signs with its own key, so the installed app presents a fingerprint
+that never existed locally. Google is the only auth path in this app, so a mismatch makes the app
+unusable for every install (`DEVELOPER_ERROR` at sign-in).
+
+Register **both** fingerprints on the Android OAuth client for `com.acegame.app` in Google Cloud Console:
+1. the **upload key** SHA-1 (command above), and
+2. the **app signing key** SHA-1 from Play Console → *Test and release → App integrity* — this only
+   exists after the first AAB upload, so register it immediately afterwards and before any public test.
 
 ### 4. iOS app (later — build-only)
 `cd fe && npm i @capacitor/ios && npx cap add ios && npx cap sync` → open `fe/ios/` in Xcode → set
