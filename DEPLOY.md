@@ -152,9 +152,10 @@ editing the policy and bumping its version are a single edit.
 Because the text is inlined into the JS bundle, the in-app policy also works **offline**, which
 matters: consent is required before sign-in, when no session yet exists.
 
-> **Before submitting the listing:** replace `privacy@example.com` in
-> [`be/web/privacy-policy.html`](be/web/privacy-policy.html) with a real, monitored address. It is
-> named as the contact for deletion and data-access requests.
+> **Contact address:** `acegametn@gmail.com`, set in
+> [`be/web/privacy-policy.html`](be/web/privacy-policy.html). It is named as the contact for
+> deletion and data-access requests, so it must stay monitored. Use the same address in the Play
+> listing's contact details.
 
 #### Google Sign-In fingerprints — do not skip
 Google Identity matches the app by **package name + signing-certificate SHA-1**. Play App Signing
