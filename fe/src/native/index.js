@@ -23,12 +23,22 @@ export async function initNativeShell(handlers = {}) {
     const { StatusBar, Style } = await import('@capacitor/status-bar');
     const { App } = await import('@capacitor/app');
 
+    // Dismiss the splash FIRST and never block on anything else to get here.
+    // launchAutoHide is false, so until this runs the splash covers the app
+    // completely — gating it behind other bridge calls means one plugin that
+    // never settles leaves a working app permanently hidden behind the splash.
+    // (.catch only handles rejection; a promise that never settles would hang.)
+    await Promise.race([
+      SplashScreen.hide().catch(() => {}),
+      new Promise((r) => setTimeout(r, 2000)),
+    ]);
+
     // Keep the WebView below the system status bar (don't draw underneath it),
     // so the app's top content isn't hidden by the clock/battery icons.
-    await StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
-    await StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
-    await StatusBar.setBackgroundColor({ color: '#0a2e1c' }).catch(() => {});
-    await SplashScreen.hide().catch(() => {});
+    // Cosmetic, so failures here must not affect anything above.
+    StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
+    StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+    StatusBar.setBackgroundColor({ color: '#0a2e1c' }).catch(() => {});
 
     App.addListener('appStateChange', ({ isActive }) => {
       if (isActive) handlers.onResume?.();

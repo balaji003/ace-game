@@ -62,10 +62,10 @@ export default function Lobby({ username, onStart, onPlayOnline, onCreateRoom, o
           </div>
         </div>
         <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={onOpenSettings} title="Profile" style={{
+          <button onClick={onOpenSettings} title="Settings" aria-label="Settings" style={{
             background: '#ffffff', border: '1px solid #00000033', color: '#111',
             borderRadius: 8, width: 34, height: 32, cursor: 'pointer', fontSize: 16,
-          }}>👤</button>
+          }}>⚙️</button>
         </div>
       </div>
 

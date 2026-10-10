@@ -14,9 +14,10 @@ const secure = !native && typeof window !== 'undefined' && window.location.proto
 const host   = (!native && typeof window !== 'undefined') ? window.location.hostname : 'localhost';
 
 // Fallback prod endpoints for native builds that forget to set the env vars.
-// TODO: replace with your real deployed domain before shipping the app.
-const NATIVE_API_DEFAULT = 'https://api.yourgame.com';
-const NATIVE_WS_DEFAULT  = 'wss://api.yourgame.com';
+// Points at the Cloudflare-proxied backend (the WAF sits on this hostname) —
+// not the Railway origin, which is retired.
+const NATIVE_API_DEFAULT = 'https://api.playacecard.com';
+const NATIVE_WS_DEFAULT  = 'wss://api.playacecard.com';
 
 export const API_BASE = import.meta.env.VITE_API_URL
   ?? (native ? NATIVE_API_DEFAULT : `${secure ? 'https' : 'http'}://${host}:8080`);

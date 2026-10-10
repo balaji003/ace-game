@@ -1,5 +1,41 @@
 import { useState } from 'react';
 import { timeAgo } from '../utils/time';
+import { isMuted, setMuted, sounds } from '../native/sound';
+import * as haptics from '../native/haptics';
+
+// A pill switch. Styled to match the panel's inline-style convention rather
+// than pulling in a UI library for two toggles.
+function Toggle({ label, icon, on, onChange }) {
+  return (
+    <button
+      onClick={() => onChange(!on)}
+      aria-pressed={on}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+        padding: '10px 12px', marginBottom: 8, borderRadius: 9,
+        border: '1.5px solid #16653488', background: '#06281a',
+        color: '#86efac', fontFamily: 'Verdana, sans-serif', fontSize: 14,
+        cursor: 'pointer', textAlign: 'left',
+      }}
+    >
+      <span style={{ fontSize: 16 }}>{icon}</span>
+      <span style={{ flex: 1 }}>{label}</span>
+      <span style={{
+        width: 42, height: 24, borderRadius: 12, flexShrink: 0,
+        background: on ? '#16a34a' : '#0a3a26',
+        border: `1px solid ${on ? '#22c55e' : '#16653488'}`,
+        position: 'relative', transition: 'background 140ms ease',
+      }}>
+        <span style={{
+          position: 'absolute', top: 2, left: on ? 20 : 2,
+          width: 18, height: 18, borderRadius: '50%',
+          background: on ? '#fff' : '#86efac66',
+          transition: 'left 140ms ease',
+        }} />
+      </span>
+    </button>
+  );
+}
 
 // Props:
 //   username  — logged-in username
@@ -9,7 +45,24 @@ import { timeAgo } from '../utils/time';
 //   onDelete  — delete account handler
 export default function SettingsPanel({ username, stats, onClose, onLogout, onDelete, onOpenHistory }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // Mirror the persisted flags into state so the switches re-render. The
+  // modules stay the source of truth; these are just a view of them.
+  const [soundOn, setSoundOn] = useState(!isMuted());
+  const [hapticsOn, setHapticsOn] = useState(haptics.isEnabled());
   const winRate = stats?.played ? Math.round((stats.wins / stats.played) * 100) : 0;
+
+  // Preview the thing being switched on, so the toggle confirms itself.
+  const toggleSound = (on) => {
+    setMuted(!on);
+    setSoundOn(on);
+    if (on) sounds.turn();
+  };
+
+  const toggleHaptics = (on) => {
+    haptics.setEnabled(on);
+    setHapticsOn(on);
+    if (on) haptics.tap();
+  };
 
   return (
     <div
@@ -78,6 +131,12 @@ export default function SettingsPanel({ username, stats, onClose, onLogout, onDe
             ))
           )}
         </div>
+
+        {/* Preferences */}
+        <div style={{ fontSize: 11, color: '#86efac99', letterSpacing: 1, marginBottom: 8 }}>PREFERENCES</div>
+        <Toggle label="Sound" icon="🔊" on={soundOn} onChange={toggleSound} />
+        <Toggle label="Vibration" icon="📳" on={hapticsOn} onChange={toggleHaptics} />
+        <div style={{ height: 10 }} />
 
         <button onClick={onOpenHistory} style={{
           width: '100%', padding: 11, borderRadius: 9,
