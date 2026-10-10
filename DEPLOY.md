@@ -213,10 +213,18 @@ strips the upload signature and re-signs with its own key, so the installed app 
 that never existed locally. Google is the only auth path in this app, so a mismatch makes the app
 unusable for every install (`DEVELOPER_ERROR` at sign-in).
 
-Register **both** fingerprints on the Android OAuth client for `com.acegame.app` in Google Cloud Console:
-1. the **upload key** SHA-1 (command above), and
-2. the **app signing key** SHA-1 from Play Console → *Test and release → App integrity* — this only
-   exists after the first AAB upload, so register it immediately afterwards and before any public test.
+Register **both** fingerprints against `com.playacecard.ace` in Google Cloud Console:
+1. the **upload key** SHA-1 (command above) — covers adb installs and local testing, and
+2. the **app signing key** SHA-1 from Play Console → *Test and release → App integrity* — covers
+   anything installed from Play. It only exists after the first AAB upload, so register it
+   immediately afterwards and before any tester installs.
+
+A Google Cloud **Android OAuth client is one package name + one SHA-1** — you cannot add a second
+fingerprint to an existing client. So this is **two clients** with the same package name, one per
+fingerprint. That is expected, not a misconfiguration.
+
+The package name is also permanent: `com.acegame.app` had to be abandoned because Play reported it
+already in use, and switching after publishing would mean a new listing with no installs or reviews.
 
 ### 4. iOS app (later — build-only)
 `cd fe && npm i @capacitor/ios && npx cap add ios && npx cap sync` → open `fe/ios/` in Xcode → set

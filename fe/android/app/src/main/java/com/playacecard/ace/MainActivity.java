@@ -1,4 +1,4 @@
-package com.acegame.app;
+package com.playacecard.ace;
 
 import com.getcapacitor.BridgeActivity;
 

@@ -29,7 +29,7 @@ JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 ADB="$HOME/Library/Android/sdk/platform-tools/adb"
 APK="$ANDROID_DIR/app/build/outputs/apk/debug/app-debug.apk"
 AAB="$ANDROID_DIR/app/build/outputs/bundle/release/app-release.aab"
-APP_ID="com.acegame.app"
+APP_ID="com.playacecard.ace"
 WEB_CLIENT_ID="548650148578"   # sanity-check token, must land in the bundle
 
 export JAVA_HOME
