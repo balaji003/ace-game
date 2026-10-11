@@ -76,11 +76,31 @@ func (h *Hub) Handle(conn *websocket.Conn, uid int64, username string) {
 		if r, ok := h.byUID[uid]; ok {
 			c.setRoom(r)
 			r.reconnect(c)
+		} else if pr, i := h.pendingOfUID(uid); pr != nil {
+			// Rebinding into a private room that is still waiting to fill. The
+			// old (dead) client is left in place on disconnect precisely so the
+			// seat — and the room's code — survive a backgrounded app.
+			pr.members[i] = c
+			h.broadcastLobby(pr)
 		}
 		close(done)
 	})
 	<-done
 	c.Serve()
+}
+
+// pendingOfUID finds the pending room this user holds a seat in, and their
+// index within it. Matching on uid rather than the *Client pointer is what lets
+// a reconnecting socket reclaim the seat.
+func (h *Hub) pendingOfUID(uid int64) (*pendingRoom, int) {
+	for _, pr := range h.pending {
+		for i, m := range pr.members {
+			if m.uid == uid {
+				return pr, i
+			}
+		}
+	}
+	return nil, -1
 }
 
 func (h *Hub) joinQueue(c *Client, opponents int) {
@@ -250,10 +270,23 @@ func (h *Hub) leave(c *Client) {
 	})
 }
 
+// disconnect handles a socket dropping. Unlike leave, this is usually
+// transient — the app was backgrounded, the screen slept, the network blipped —
+// so it must NOT tear down state the user expects to come back to.
+//
+// Matchmaking queues have no reconnect path, so a dropped client is removed
+// from them. A pending private room is different: the seat (and for the host,
+// the room itself) is held, and Handle rebinds the new socket to it by uid.
+// Previously this called removeFromPending, which disbanded the host's room the
+// moment they switched apps — other players then got "room not found" while the
+// host still saw the lobby on screen.
 func (h *Hub) disconnect(c *Client) {
 	h.do(func() {
-		if h.removeFromQueue(c) || h.removeFromPending(c) {
+		if h.removeFromQueue(c) {
 			return
+		}
+		if pr, _ := h.pendingOfUID(c.uid); pr != nil {
+			return // hold the seat; the room survives until they leave explicitly
 		}
 		if r := c.currentRoom(); r != nil {
 			r.disconnect(c)

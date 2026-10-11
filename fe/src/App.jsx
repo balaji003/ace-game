@@ -42,6 +42,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showHistory,  setShowHistory]  = useState(false);
   const [showHowTo,    setShowHowTo]    = useState(false);
+  const [confirmExit,  setConfirmExit]  = useState(false); // hardware-back out of a live game
 
   // Online multiplayer state (server-driven via the shared socket)
   const [onlineOpps,   setOnlineOpps]   = useState(1);
@@ -78,13 +79,21 @@ export default function App() {
     initNativeShell({
       onResume: () => {
         const s = navRef.current.screen;
-        if (s === 'online' || s === 'waiting') socket.connect();
+        // 'room' matters as much as the others: a host sitting in a private
+        // room lobby who switches apps drops their socket, and without this
+        // they never reconnect — the room looks alive on their screen while
+        // everyone else gets "room not found".
+        if (s === 'online' || s === 'waiting' || s === 'room') socket.connect();
       },
       onBack: () => {
         const n = navRef.current;
+        if (n.confirmExit) { n.setConfirmExit(false); return true; } // dismiss the confirm itself
         if (n.showHowTo) { n.setShowHowTo(false); return true; }
         if (n.showHistory) { n.setShowHistory(false); return true; }
         if (n.showSettings) { n.setShowSettings(false); return true; }
+        // Back out of a game in progress is destructive — abandoning an online
+        // match forfeits it — so ask rather than acting on a stray swipe.
+        if (n.screen === 'game' || n.screen === 'online') { n.setConfirmExit(true); return true; }
         if (n.screen && n.screen !== 'lobby') { n.toLobby(); return true; }
         return false; // on the lobby → let the OS exit the app
       },
@@ -157,6 +166,7 @@ export default function App() {
   useEffect(() => {
     navRef.current = {
       screen, showSettings, showHistory, showHowTo, setShowSettings, setShowHistory, setShowHowTo,
+      confirmExit, setConfirmExit,
       toLobby: () => { (screen === 'online' || screen === 'waiting' || screen === 'room') ? exitOnline(true) : setScreen('lobby'); },
     };
   });
@@ -279,6 +289,54 @@ export default function App() {
 
       {showHowTo && (
         <HowToPlay onBack={() => setShowHowTo(false)} />
+      )}
+
+      {/* Hardware back inside a live game. Leaving an online match forfeits it,
+          and an offline one is lost, so neither should happen on a stray swipe. */}
+      {confirmExit && (
+        <div
+          onClick={() => setConfirmExit(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 3000, background: '#000000bb',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: 360, background: 'linear-gradient(160deg,#0f3d28,#08291a)',
+              border: '1.5px solid #166534', borderRadius: 16, padding: 22,
+              fontFamily: 'Verdana, sans-serif', boxShadow: '0 20px 60px #0008',
+            }}
+          >
+            <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', marginBottom: 8 }}>
+              Leave this game?
+            </div>
+            <div style={{ fontSize: 13, color: '#86efac', lineHeight: 1.5, marginBottom: 18 }}>
+              {screen === 'online'
+                ? 'You will forfeit the match and it will count as a loss.'
+                : 'This game will be lost and cannot be resumed.'}
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setConfirmExit(false)}
+                style={{
+                  flex: 1, padding: 11, borderRadius: 9, border: '1.5px solid #16653488',
+                  background: '#06281a', color: '#86efac', fontFamily: 'Verdana, sans-serif',
+                  fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                }}
+              >Keep playing</button>
+              <button
+                onClick={() => { setConfirmExit(false); navRef.current.toLobby(); }}
+                style={{
+                  flex: 1, padding: 11, borderRadius: 9, border: 'none',
+                  background: '#dc2626', color: '#fff', fontFamily: 'Verdana, sans-serif',
+                  fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                }}
+              >Leave</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showSettings && !showHistory && (

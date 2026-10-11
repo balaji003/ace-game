@@ -136,7 +136,7 @@ func (r *Room) handle(ev roomEvent) {
 }
 
 func (r *Room) onPlay(c *Client, card game.Card) {
-	p := r.playerOf(c)
+	p := r.playerForUID(c.uid)
 	if p == nil || r.state.Phase != game.PhasePlaying {
 		return
 	}
@@ -210,10 +210,15 @@ func (r *Room) onGrace(gen int) {
 // onImHere consumes one retry. Each click buys another grace period, up to
 // MaxRetries; the click past the cap (or any unanswered grace) burns the seat.
 func (r *Room) onImHere(c *Client) {
-	p := r.playerOf(c)
+	// Resolve by uid, not by *Client. After a reconnect the player holds a new
+	// Client, and a pointer match would silently drop their "I am here" — the
+	// click appears to do nothing while the grace timer runs out underneath.
+	p := r.playerForUID(c.uid)
 	if p == nil || !r.prompting || r.state.CurrentSeat() != p.seat {
 		return
 	}
+	p.client = c // the live socket for this seat is whichever one just spoke
+	p.connected = true
 	r.retriesUsed++
 	if r.retriesUsed > r.cfg.MaxRetries {
 		r.forfeit(p.seat, "timeout")
