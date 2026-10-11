@@ -55,8 +55,19 @@ type Room struct {
 	turnGen     int
 	retriesUsed int  // "I am here" clicks consumed this turn
 	prompting   bool // currently showing the no-response prompt
+	firstTurn   bool // the opening turn still gets its extra settling time
 	done        bool
 }
+
+// firstTurnExtra is added to the warn timer on the opening turn only.
+//
+// The timer arms the instant the room is created, but nobody is necessarily
+// looking at their screen then — a private-room host in particular has been
+// sitting in a lobby waiting for it to fill, and the game begins the moment the
+// last player joins. The client also plays a ~3s deal animation before any card
+// can be tapped. Without this the host was being shown "are you still there?"
+// seconds after a game they had not realised had started.
+const firstTurnExtra = 15 * time.Second
 
 func newRoom(id string, hub *Hub, members []*Client, cfg HubConfig, rec GameRecorder) *Room {
 	players := make([]*Player, len(members))
@@ -65,14 +76,15 @@ func newRoom(id string, hub *Hub, members []*Client, cfg HubConfig, rec GameReco
 	}
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	return &Room{
-		id:      id,
-		hub:     hub,
-		players: players,
-		state:   game.InitGame(len(members), rng),
-		cfg:     cfg,
-		rec:     rec,
-		events:  make(chan roomEvent, 64),
-		quit:    make(chan struct{}),
+		id:        id,
+		hub:       hub,
+		players:   players,
+		state:     game.InitGame(len(members), rng),
+		cfg:       cfg,
+		rec:       rec,
+		events:    make(chan roomEvent, 64),
+		quit:      make(chan struct{}),
+		firstTurn: true,
 	}
 }
 
@@ -266,7 +278,12 @@ func (r *Room) armTurn() {
 	r.turnGen++
 	r.retriesUsed = 0
 	r.prompting = false
-	r.scheduleAfter(time.Duration(r.cfg.WarnSecs)*time.Second,
+	warn := time.Duration(r.cfg.WarnSecs) * time.Second
+	if r.firstTurn {
+		r.firstTurn = false
+		warn += firstTurnExtra
+	}
+	r.scheduleAfter(warn,
 		func(gen int) roomEvent { return roomEvent{typ: evIdle, gen: gen} })
 }
 
@@ -553,4 +570,3 @@ func (r *Room) playerForUID(uid int64) *Player {
 	}
 	return nil
 }
-
