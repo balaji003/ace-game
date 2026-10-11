@@ -71,7 +71,7 @@ export default function SettingsPanel({ username, stats, onClose, onLogout, onDe
         position: 'fixed', inset: 0, zIndex: 2000,
         background: '#000000aa', backdropFilter: 'blur(3px)',
         display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-        padding: '40px 16px', overflowY: 'auto',
+        padding: 'calc(40px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom))', overflowY: 'auto',
       }}
     >
       <div

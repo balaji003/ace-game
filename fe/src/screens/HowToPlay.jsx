@@ -152,13 +152,15 @@ export default function HowToPlay({ onBack }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 200, overflowY: 'auto',
+      paddingBottom: 'env(safe-area-inset-bottom)',
       background: PAGE_BG_GREEN,
       fontFamily: 'Verdana, sans-serif', color: '#111',
     }}>
       {/* Sticky header: back + title (left), language switcher (right) */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 1,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 16px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+        padding: 'calc(14px + env(safe-area-inset-top)) 16px 14px',
         background: '#dcfce7dd', backdropFilter: 'blur(6px)', borderBottom: '1px solid #16a34a33',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

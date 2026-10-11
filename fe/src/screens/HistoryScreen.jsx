@@ -55,6 +55,7 @@ export default function HistoryScreen({ onBack }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 1500, overflowY: 'auto',
+      paddingBottom: 'env(safe-area-inset-bottom)',
       background: PAGE_BG_GREEN,
       fontFamily: 'Verdana, sans-serif', color: '#111',
     }}>
@@ -63,7 +64,7 @@ export default function HistoryScreen({ onBack }) {
         position: 'sticky', top: 0, zIndex: 10,
         background: '#dcfce7ee', backdropFilter: 'blur(6px)',
         borderBottom: '1px solid #16a34a33',
-        padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12,
+        padding: 'calc(12px + env(safe-area-inset-top)) 16px 12px', display: 'flex', alignItems: 'center', gap: 12,
       }}>
         <button
           onClick={onBack}

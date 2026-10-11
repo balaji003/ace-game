@@ -152,6 +152,7 @@ export default function AuthScreen({ onLogin }) {
         background: PAGE_BG_GREEN,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexDirection: 'column', gap: 24,
+        padding: 'env(safe-area-inset-top) 16px env(safe-area-inset-bottom)',
         animation: 'introFade 2.8s ease forwards',
       }}>
         <AceCard style={{ animation: 'cardZoomOut 1.6s cubic-bezier(.1,1,.4,1) both' }} />

@@ -301,6 +301,7 @@ export default function GameScreen({ username, nPlayers, useAI, practice = false
           position: 'fixed', inset: 0, zIndex: 50,
           background: '#00000099',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 'env(safe-area-inset-top) 16px env(safe-area-inset-bottom)',
         }}>
           <div style={{
             background: '#1c1917', border: '1.5px solid #4ade80', borderRadius: 14,
@@ -342,6 +343,7 @@ export default function GameScreen({ username, nPlayers, useAI, practice = false
           position: 'fixed', inset: 0, zIndex: 50,
           background: '#00000099',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 'env(safe-area-inset-top) 16px env(safe-area-inset-bottom)',
         }}>
           <div style={{
             background: '#1c1917', border: '1.5px solid #4ade8066', borderRadius: 14,
@@ -378,6 +380,7 @@ export default function GameScreen({ username, nPlayers, useAI, practice = false
           position: 'fixed', inset: 0, zIndex: 50,
           background: '#00000099',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 'env(safe-area-inset-top) 16px env(safe-area-inset-bottom)',
         }}>
           <div style={{
             background: '#1c1917', border: '1.5px solid #4ade8066', borderRadius: 14,
@@ -414,6 +417,7 @@ export default function GameScreen({ username, nPlayers, useAI, practice = false
           position: 'fixed', inset: 0, zIndex: 60,
           background: '#000000bb',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 'env(safe-area-inset-top) 16px env(safe-area-inset-bottom)',
         }}>
           <div style={{
             background: '#1c1917', border: `1.5px solid ${afkTriesLeft <= 1 ? '#ef4444' : '#f59e0b'}`, borderRadius: 14,

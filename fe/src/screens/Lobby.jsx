@@ -139,7 +139,8 @@ export default function Lobby({ username, onStart, onPlayOnline, onCreateRoom, o
       {showPractice && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 50, background: '#000000aa',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 'calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom))',
         }}>
           <div style={{
             background: '#0c2d44', border: '1.5px solid #38bdf8', borderRadius: 16,
@@ -222,7 +223,8 @@ export default function Lobby({ username, onStart, onPlayOnline, onCreateRoom, o
         return (
           <div style={{
             position: 'fixed', inset: 0, zIndex: 50, background: '#000000aa',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 'calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom))',
           }}>
             <div style={{
               background: '#0c2d44', border: '1.5px solid #38bdf8', borderRadius: 16,

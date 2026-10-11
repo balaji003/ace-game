@@ -262,7 +262,7 @@ export default function OnlineGameScreen({ start, state, event, prompt, peerIdle
 
 function Overlay({ children, borderColor = '#0ea5e9' }) {
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#000000c0', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#000000c0', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom))' }}>
       <div style={{ background: 'linear-gradient(135deg,#111827,#1e293b)', border: `2px solid ${borderColor}`, borderRadius: 14, padding: '26px 30px', textAlign: 'center', maxWidth: 340 }}>
         {children}
       </div>
