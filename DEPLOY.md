@@ -115,6 +115,7 @@ the Cloudflare proxy, so this is two passes:
    # "Block unknown paths" → Block
    not ( http.request.uri.path eq "/health" or
          http.request.uri.path eq "/privacy" or
+         http.request.uri.path eq "/account-deletion" or
          http.request.uri.path eq "/ws" or
          starts_with(http.request.uri.path, "/api/") )
 
@@ -192,6 +193,18 @@ Play needs a policy readable on the open web, without installing the app. There 
 frontend, so the Go backend serves it at **`https://api.playacecard.com/privacy`** — use that as
 the listing's privacy policy URL. Cloudflare custom rule 1 explicitly allows `/privacy`; if that
 rule is ever tightened, this URL must stay reachable or Play will flag the listing.
+
+#### Account deletion URL (also required by Play)
+Play separately requires a public link where users can request account deletion, served at
+**`https://api.playacecard.com/account-deletion`** ([`be/web/account-deletion.html`](be/web/account-deletion.html)).
+It is a distinct page rather than an anchor into the policy because Play requires the steps to be
+**prominent**, and in the policy they sit halfway down the document. The page must keep naming the
+app as the listing shows it, keep the steps near the top, and keep stating what is deleted, what is
+retained and for how long — those are Play's three stated criteria, and `be/web/web_test.go` asserts
+each one.
+
+> This path is also in Cloudflare custom rule 1. Adding a public page without adding it to that
+> allow-list returns 403, and Play would reject the listing for a dead link.
 
 There is only ever one copy of the text. [`be/web/privacy-policy.html`](be/web/privacy-policy.html)
 and its stylesheet are embedded into the Go binary (`go:embed`) **and** raw-imported by the in-app

@@ -37,6 +37,42 @@ func TestPrivacyServesCompletePage(t *testing.T) {
 	}
 }
 
+// Play rejects a deletion link that does not name the app, put the steps
+// prominently, and state what is kept and for how long — so assert the page
+// still carries each of those.
+func TestAccountDeletionServesCompletePage(t *testing.T) {
+	rec := httptest.NewRecorder()
+	AccountDeletion(rec, httptest.NewRequest(http.MethodGet, "/account-deletion", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/html") {
+		t.Errorf("Content-Type = %q, want text/html", ct)
+	}
+
+	body := rec.Body.String()
+	for _, want := range []string{
+		"<!doctype html>",
+		"<title>Delete your account · ACE</title>",
+		`class="ace-policy-page"`,
+		"ACE: Multiplayer Card Game", // names the app as the listing shows it
+		"Delete Account",             // the in-app step
+		"acegametn@gmail.com",        // the email route, for uninstalled users
+		"What is deleted",
+		"What is kept, and for how long",
+		".ace-policy .hl", // stylesheet inlined, so the page needs no other request
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("page is missing %q", want)
+		}
+	}
+
+	if strings.Contains(body, "<!--") || strings.Contains(body, "TODO") {
+		t.Error("authoring comments leaked into the served page")
+	}
+}
+
 // The in-app screen parses the version out of this same markup, so the span the
 // parser looks for has to stay present and singular.
 func TestPolicyVersionSpanIsParseable(t *testing.T) {

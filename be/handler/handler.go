@@ -63,6 +63,11 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	// the app; this serves the same document the in-app screen renders.
 	mux.HandleFunc("GET /privacy", web.Privacy)
 
+	// Public account-deletion instructions. Play requires this as a separate
+	// link on the store listing, reachable without installing the app, with the
+	// deletion steps prominent rather than buried inside the policy.
+	mux.HandleFunc("GET /account-deletion", web.AccountDeletion)
+
 	// WebSocket endpoint for online multiplayer (auth via ?token=).
 	mux.HandleFunc("GET /ws", s.handleWS)
 

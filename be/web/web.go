@@ -16,6 +16,9 @@ import (
 //go:embed privacy-policy.html
 var policyFragment string
 
+//go:embed account-deletion.html
+var deletionFragment string
+
 //go:embed privacy-policy.css
 var policyCSS string
 
@@ -40,9 +43,34 @@ var policyPage = `<!doctype html>
 </html>
 `
 
+// deletionPage is the standalone document served at /account-deletion. Google
+// Play requires this URL on the store listing, reachable without installing the
+// app, so it is built the same self-contained way as policyPage.
+var deletionPage = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Delete your account · ACE</title>
+<style>` + policyCSS + `</style>
+</head>
+<body style="margin:0">
+<div class="ace-policy-page">` + commentRE.ReplaceAllString(deletionFragment, "") + `</div>
+</body>
+</html>
+`
+
 // Privacy serves the policy as a complete HTML page.
 func Privacy(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=3600")
 	_, _ = w.Write([]byte(policyPage))
+}
+
+// AccountDeletion serves the account-deletion instructions as a complete HTML
+// page. The URL is published on the Play store listing.
+func AccountDeletion(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+	_, _ = w.Write([]byte(deletionPage))
 }
