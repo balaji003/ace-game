@@ -8,9 +8,15 @@
 //   socketStatus — 'connecting' | 'open' | 'reconnecting' | 'idle'
 //   error        — error string (bad code, room full, host left), if any
 //   onCancel     — leave the room and return to the lobby
+import { useState } from 'react';
 import { PAGE_BG_BLUE } from '../theme';
+import { shareText, copyText } from '../native/share';
 
 export default function RoomLobby({ lobby, socketStatus, error, onCancel }) {
+  // Transient confirmation under the buttons. The share sheet is the OS's job,
+  // so the only feedback worth giving is for the clipboard paths.
+  const [toast, setToast] = useState(null);
+  const flash = msg => { setToast(msg); setTimeout(() => setToast(null), 1800); };
   const connecting = socketStatus !== 'open';
   const code   = lobby?.code;
   const needed = lobby?.needed ?? 0;
@@ -46,10 +52,42 @@ export default function RoomLobby({ lobby, socketStatus, error, onCancel }) {
               background: '#0a2233', border: '1.5px solid #38bdf8', borderRadius: 12,
               padding: '12px 0 12px 12px', marginBottom: 8,
             }}>{code}</div>
-            <div style={{ fontSize: 12, color: '#7dd3fc99', marginBottom: 22 }}>
+            <div style={{ fontSize: 12, color: '#7dd3fc99', marginBottom: 14 }}>
               {isHost
                 ? 'Share this code with your friends so they can join'
                 : 'Waiting for the room to fill…'}
+            </div>
+
+            {/* Invite actions. Shown to everyone in the room, not just the host —
+                any member may be the one with the right group chat open. */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <button
+                onClick={async () => {
+                  const res = await shareText({
+                    title: 'ACE — join my game',
+                    dialogTitle: 'Invite friends to ACE',
+                    text: `Join my ACE game! Room code: ${code}\n\nOpen ACE, tap Play Online, then Join with code.`,
+                  });
+                  if (res === 'copied') flash('Invite copied to clipboard');
+                  if (res === 'failed') flash(`Share unavailable — code is ${code}`);
+                }}
+                style={{
+                  flex: 2, padding: '12px 0', borderRadius: 9, border: 'none',
+                  background: 'linear-gradient(135deg,#0ea5e9,#0369a1)', color: '#fff',
+                  fontFamily: 'Verdana, sans-serif', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                }}
+              >Share invite</button>
+              <button
+                onClick={async () => flash(await copyText(code) ? 'Code copied' : `Code is ${code}`)}
+                style={{
+                  flex: 1, padding: '12px 0', borderRadius: 9,
+                  border: '1.5px solid #38bdf866', background: '#0a2233', color: '#7dd3fc',
+                  fontFamily: 'Verdana, sans-serif', fontSize: 14, cursor: 'pointer',
+                }}
+              >Copy</button>
+            </div>
+            <div style={{ fontSize: 11.5, color: '#4ade80', height: 16, marginBottom: 14 }}>
+              {toast || ''}
             </div>
 
             {/* Seat pills */}
